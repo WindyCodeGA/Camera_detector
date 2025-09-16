@@ -8,17 +8,17 @@ class OnBoardingScreen extends StatefulWidget {
 }
 
 class _OnBoardingScreenState extends State<OnBoardingScreen> {
-  late PageController _PageController;
+  late PageController _pageController;
   int _pageIndex = 0;
   @override
   void initState() {
-    _PageController = PageController(initialPage: 0);
+    _pageController = PageController(initialPage: 0);
     super.initState();
   }
 
   @override
   void dispose() {
-    _PageController.dispose();
+    _pageController.dispose();
     super.dispose();
   }
 
@@ -32,24 +32,24 @@ class _OnBoardingScreenState extends State<OnBoardingScreen> {
             children: [
               Expanded(
                 child: PageView.builder(
-                  itemCount: demo_data.length,
-                  controller: _PageController,
+                  itemCount: demoData.length,
+                  controller: _pageController,
                   onPageChanged: (index) {
                     setState(() {
                       _pageIndex = index;
                     });
                   },
                   itemBuilder: (context, index) => OnboardContent(
-                    image: demo_data[index].image,
-                    title: demo_data[index].title,
-                    description: demo_data[index].description,
+                    image: demoData[index].image,
+                    title: demoData[index].title,
+                    description: demoData[index].description,
                   ),
                 ),
               ),
               Row(
                 children: [
                   ...List.generate(
-                    demo_data.length,
+                    demoData.length,
                     (index) => Padding(
                       padding: const EdgeInsets.only(right: 4),
                       child: DotIndicator(isActive: index == _pageIndex),
@@ -61,7 +61,7 @@ class _OnBoardingScreenState extends State<OnBoardingScreen> {
                     width: 60,
                     child: ElevatedButton(
                       onPressed: () {
-                        _PageController.nextPage(
+                        _pageController.nextPage(
                           duration: const Duration(milliseconds: 300),
                           curve: Curves.ease,
                         );
@@ -69,7 +69,7 @@ class _OnBoardingScreenState extends State<OnBoardingScreen> {
                       style: ElevatedButton.styleFrom(
                         shape: const CircleBorder(),
                       ),
-                      child: Icon(Icons.arrow_forward),
+                      child: const Icon(Icons.arrow_forward),
                     ),
                   ),
                 ],
@@ -109,7 +109,8 @@ class Onboard {
   });
 }
 
-final List<Onboard> demo_data = [
+// Demo data
+final List<Onboard> demoData = [
   Onboard(
     image: "assets/images/image01.png",
     title: "Welcome to Camera Detector",
