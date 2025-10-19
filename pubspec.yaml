@@ -30,6 +30,7 @@ dependencies:
   logger: ^2.5.0
   camera: ^0.10.5+5
   path_provider: ^2.1.1
+  wifi_scan: ^0.4.1
   permission_handler: ^11.0.1
   vibration: ^1.8.1
   image: ^4.1.3

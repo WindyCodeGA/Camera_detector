@@ -5,6 +5,7 @@ import 'ir_scanner_screen.dart';
 import 'flashlight_screen.dart';
 import 'magnetic_field_scanner_screen.dart';
 import '../widgets/scan_option_card.dart';
+import 'screen_wifi.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -18,7 +19,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   final List<Widget> _screens = [
     const ScanOptionsScreen(),
-    const WifiScannerScreen(),
+    WifiScannerScreen(),
     const BluetoothScannerScreen(),
     const MagneticFieldScannerScreen(),
   ];
@@ -87,9 +88,7 @@ class ScanOptionsScreen extends StatelessWidget {
                   onTap: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(
-                        builder: (context) => const WifiScannerScreen(),
-                      ),
+                      MaterialPageRoute(builder: (context) => HomeWifi()),
                     );
                   },
                 ),
