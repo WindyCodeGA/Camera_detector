@@ -1,5 +1,5 @@
 import 'package:animated_splash_screen/animated_splash_screen.dart';
-import 'package:camera_detector/screens/home_screen.dart';
+import 'package:camera_detector/features/home/presentation/screens/home_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
 

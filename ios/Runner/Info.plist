@@ -2,6 +2,12 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>NSBluetoothAlwaysUsageDescription</key>
+    <string>Ứng dụng này cần quyền truy cập Bluetooth để quét và hiển thị các thiết bị Bluetooth gần đó.</string>
+    <key>NSBluetoothPeripheralUsageDescription</key>
+    <string>Ứng dụng này cần quyền truy cập Bluetooth để quét các thiết bị.</string>
+    <key>NSLocationWhenInUseUsageDescription</key>
+    <string>Ứng dụng này cần quyền truy cập vị trí để quét các thiết bị Bluetooth.</string>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>

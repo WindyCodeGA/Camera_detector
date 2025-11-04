@@ -1,12 +1,25 @@
-import 'package:camera_detector/splash/splash_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-// import 'screens/home_screen.dart';
-import 'theme/app_theme.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_blue_plus/flutter_blue_plus.dart';
+
+// Import theme
+import 'core/theme/app_theme.dart';
+
+// Import Blocs
+import 'features/bluetooth_scanner/application/bluetooth_bloc.dart';
+import 'features/wifi_scanner/application/wifi_scanner_bloc.dart';
+
+// Import Splash Screen
+import 'package:camera_detector/features/splash/application/splash_screen.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
   SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+
+  // Bật log của FlutterBluePlus để debug
+  FlutterBluePlus.setLogLevel(LogLevel.verbose, color: true);
+
   runApp(const MyApp());
 }
 
@@ -15,11 +28,26 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Camera Detector',
-      debugShowCheckedModeBanner: false,
-      theme: AppTheme.darkTheme,
-      home: const SplashScreen(),
+    // Dùng MultiBlocProvider để cung cấp tất cả BLoC
+    return MultiBlocProvider(
+      providers: [
+        // Cung cấp BLoC Bluetooth
+        BlocProvider<BluetoothScannerBloc>(
+          create: (context) => BluetoothScannerBloc(),
+        ),
+
+        // Cung cấp BLoC Wifi
+        BlocProvider<WifiScannerBloc>(create: (context) => WifiScannerBloc()),
+
+        // (Thêm các BLoC khác của bạn ở đây trong tương lai)
+      ],
+      // MaterialApp bây giờ là con (child)
+      child: MaterialApp(
+        title: 'Camera Detector',
+        debugShowCheckedModeBanner: false,
+        theme: AppTheme.darkTheme,
+        home: const SplashScreen(),
+      ),
     );
   }
 }
