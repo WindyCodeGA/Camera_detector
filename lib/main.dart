@@ -9,6 +9,7 @@ import 'core/theme/app_theme.dart';
 // Import Blocs
 import 'features/bluetooth_scanner/application/bluetooth_bloc.dart';
 import 'features/wifi_scanner/application/wifi_scanner_bloc.dart';
+import 'features/ir_scanner/application/ir_scanner_bloc.dart';
 
 // Import Splash Screen
 import 'package:camera_detector/features/splash/application/splash_screen.dart';
@@ -39,7 +40,10 @@ class MyApp extends StatelessWidget {
         // Cung cấp BLoC Wifi
         BlocProvider<WifiScannerBloc>(create: (context) => WifiScannerBloc()),
 
-        // (Thêm các BLoC khác của bạn ở đây trong tương lai)
+        BlocProvider<IrScannerBloc>(
+          // <--- THÊM BLOC NÀY
+          create: (context) => IrScannerBloc(),
+        ),
       ],
       // MaterialApp bây giờ là con (child)
       child: MaterialApp(
