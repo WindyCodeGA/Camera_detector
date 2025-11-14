@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:camera_detector/features/bluetooth_scanner/presentation/screens/bluetooth_scanner_screen.dart';
 import 'package:camera_detector/features/wifi_scanner/presentation/screens/wifi_scanner_screen.dart';
 import 'package:camera_detector/features/ir_scanner/presentation/screens/ir_scanner_screen.dart';
+import 'package:camera_detector/features/magnetic_field/presentation/screens/magnetic_field_scanner_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -25,22 +26,13 @@ class _HomeScreenState extends State<HomeScreen> {
     const IRScannerScreen(),
     const WifiScannerScreen(),
     const BluetoothScannerScreen(),
-    // const MagneticFieldScannerScreen(),
+    const MagneticFieldScannerScreen(),
   ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.settings),
-            onPressed: () {
-              // Navigate to settings
-            },
-          ),
-        ],
-      ),
+      appBar: AppBar(),
       body: _screens[_selectedIndex],
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,

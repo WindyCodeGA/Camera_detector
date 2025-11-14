@@ -11,9 +11,6 @@ class WifiScannerScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Không cần Scaffold ở đây vì nó đã được cung cấp
-    // bởi HomeScreen (BottomNavigationBar)
-
     return BlocBuilder<WifiScannerBloc, WifiScannerState>(
       builder: (context, state) {
         // Dùng switch-case để quyết định UI
@@ -43,7 +40,6 @@ class WifiScannerScreen extends StatelessWidget {
 
   // --- CÁC HÀM XÂY DỰNG UI ---
 
-  // UI từ file `screen_wifi.dart` (cũ)
   Widget _buildStartUI(BuildContext context, {required bool isLoading}) {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
@@ -73,7 +69,6 @@ class WifiScannerScreen extends StatelessWidget {
     );
   }
 
-  // UI hiển thị danh sách Wi-Fi (từ `wifi_scanner_screen.dart` cũ)
   Widget _buildScanListUI(
     BuildContext context,
     List<WiFiAccessPoint> networks,

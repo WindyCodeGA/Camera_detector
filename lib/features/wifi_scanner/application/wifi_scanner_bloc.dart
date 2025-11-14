@@ -84,7 +84,7 @@ class WifiScannerBloc extends Bloc<WifiScannerEvent, WifiScannerState> {
     // Quét ngay lập tức 1 lần
     _scanWifi();
 
-    // Sau đó quét định kỳ mỗi 2 giây (giống code cũ)
+    // Sau đó quét định kỳ mỗi 2 giây
     _scanTimer = Timer.periodic(const Duration(seconds: 2), (_) => _scanWifi());
   }
 
@@ -114,7 +114,6 @@ class WifiScannerBloc extends Bloc<WifiScannerEvent, WifiScannerState> {
 
       final results = await WiFiScan.instance.getScannedResults();
 
-      // Thêm sự kiện nội bộ để cập nhật state
       add(_ScanResultsUpdated(results));
     } catch (e) {
       addError(e);

@@ -1,0 +1,92 @@
+import 'package:flutter/material.dart';
+import 'package:syncfusion_flutter_gauges/gauges.dart';
+
+class MagneticGauge extends StatelessWidget {
+  final double value;
+  final double maximum;
+
+  const MagneticGauge({
+    super.key,
+    required this.value,
+    this.maximum = 200.0, // Đặt giá trị max (giống ảnh)
+  });
+
+  // Helper để lấy màu dựa trên giá trị
+  Color _getStrengthColor(double val) {
+    // Các ngưỡng này dựa trên giá trị ĐÃ LỌC
+    if (val > 30) return Colors.red;
+    if (val > 10) return Colors.orange;
+    return Colors.white; // Màu bình thường
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final color = _getStrengthColor(value);
+
+    return SfRadialGauge(
+      axes: <RadialAxis>[
+        RadialAxis(
+          minimum: 0,
+          maximum: maximum, // Giống ảnh (0-200)
+          showLabels: false, // Ẩn nhãn mặc định
+          showTicks: true, // Hiển thị các vạch chia
+          tickOffset: -10,
+          minorTicksPerInterval: 5,
+          axisLineStyle: const AxisLineStyle(
+            thickness: 0, // Ẩn đường viền trục chính
+          ),
+          pointers: <GaugePointer>[
+            RangePointer(
+              value: maximum,
+              width: 20,
+              color: Colors.grey.shade800,
+              cornerStyle: CornerStyle.bothCurve,
+            ),
+
+            MarkerPointer(
+              value: value, // Giá trị đã lọc
+              markerHeight: 20,
+              markerWidth: 20,
+              markerType: MarkerType.circle,
+              color: Colors.red,
+              borderWidth: 2,
+              borderColor: Colors.white,
+            ),
+          ],
+          annotations: <GaugeAnnotation>[
+            GaugeAnnotation(
+              widget: const Text(
+                '0',
+                style: TextStyle(fontSize: 18, color: Colors.white70),
+              ),
+              angle: 180,
+              positionFactor: 1.0,
+            ),
+
+            GaugeAnnotation(
+              widget: Text(
+                maximum.toStringAsFixed(0),
+                style: const TextStyle(fontSize: 18, color: Colors.white70),
+              ),
+              angle: 0,
+              positionFactor: 1.0,
+            ),
+
+            GaugeAnnotation(
+              widget: Text(
+                value.toStringAsFixed(0),
+                style: TextStyle(
+                  fontSize: 90,
+                  fontWeight: FontWeight.bold,
+                  color: color,
+                ),
+              ),
+              angle: 90,
+              positionFactor: 0.1,
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}

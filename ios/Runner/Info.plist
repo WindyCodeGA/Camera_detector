@@ -2,6 +2,11 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>NSCameraUsageDescription</key>
+    <string>Ứng dụng này cần quyền truy cập camera để quét tia hồng ngoại.</string>
+    <key>NSMicrophoneUsageDescription</key>
+    <string>Ứng dụng này không sử dụng micro.</string> ```
+     (Mặc dù chúng ta đã tắt `enableAudio: false`, nhưng `NSMicrophoneUsageDescription` đôi khi vẫn cần thiết cho thư viện `camera` trên iOS.)
 	<key>NSBluetoothAlwaysUsageDescription</key>
     <string>Ứng dụng này cần quyền truy cập Bluetooth để quét và hiển thị các thiết bị Bluetooth gần đó.</string>
     <key>NSBluetoothPeripheralUsageDescription</key>

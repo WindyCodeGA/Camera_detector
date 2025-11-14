@@ -70,7 +70,7 @@ class _IRScannerScreenState extends State<IRScannerScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Infrared Scanner (BLoC)'),
+        title: const Text('Infrared Scan'),
         centerTitle: true,
         actions: [
           IconButton(
@@ -81,7 +81,6 @@ class _IRScannerScreenState extends State<IRScannerScreen> {
           ),
         ],
       ),
-      // Dùng BlocBuilder để xây dựng UI dựa trên IrScannerState
       body: BlocConsumer<IrScannerBloc, IrScannerState>(
         listener: (context, state) {
           // Dùng listener để hiển thị lỗi

@@ -45,6 +45,9 @@ dependencies:
   equatable: ^2.0.5
   fl_chart: ^0.70.0
   collection: ^1.19.1
+  syncfusion_flutter_gauges: ^31.1.19
+  audioplayers: ^6.5.1
+  bloc: ^9.1.0
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -80,7 +83,7 @@ flutter:
      - assets/images/image02.png
      - assets/images/image03.png
      - assets/scan.json
-
+     - assets/sounds/beep.mp3
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
 

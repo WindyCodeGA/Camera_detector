@@ -174,8 +174,9 @@ class IrScannerBloc extends Bloc<IrScannerEvent, IrScannerState>
     final controller = state.cameraController;
     if (controller == null ||
         !controller.value.isInitialized ||
-        !state.isRecording)
+        !state.isRecording) {
       return;
+    }
 
     try {
       final XFile videoFile = await controller.stopVideoRecording();
@@ -188,7 +189,7 @@ class IrScannerBloc extends Bloc<IrScannerEvent, IrScannerState>
       );
 
       // TODO: Thêm logic xử lý file video (ví dụ: lưu vào thư viện)
-      print("Video đã được lưu tại: ${videoFile.path}");
+      debugPrint("Video đã được lưu tại: ${videoFile.path}");
     } catch (e) {
       emit(
         state.copyWith(
