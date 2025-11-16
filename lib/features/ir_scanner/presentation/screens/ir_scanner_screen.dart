@@ -272,9 +272,7 @@ class _IRScannerScreenState extends State<IRScannerScreen> {
             width: 45,
             height: 45,
             decoration: BoxDecoration(
-              color: color.withAlpha(
-                isSelected ? 255 : 153,
-              ), // 60% opacity when not selected
+              color: color.withAlpha(isSelected ? 255 : 153),
               shape: BoxShape.circle,
               border: isSelected
                   ? Border.all(color: Colors.white, width: 3)

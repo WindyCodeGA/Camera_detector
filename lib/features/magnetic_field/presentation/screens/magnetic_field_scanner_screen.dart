@@ -1,8 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-// import 'package:flutter/services.dart'; // Không cần thư viện này nữa
 import 'package:flutter_bloc/flutter_bloc.dart';
-// import 'package:soundpool/soundpool.dart'; // ĐÃ XÓA
 import 'package:audioplayers/audioplayers.dart'; // ĐÃ THÊM
 import 'package:vibration/vibration.dart';
 
@@ -113,62 +111,83 @@ class _MagneticFieldScannerScreenState
             return Center(child: Text("Lỗi cảm biến: ${state.errorMessage}"));
           }
 
-          // Giao diện chính
-          return Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                // --- 1. Tiêu đề ---
-                const Column(
-                  children: [
-                    SizedBox(height: 20),
-                    Text(
-                      "Magnetometer",
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
+          return LayoutBuilder(
+            builder: (context, constraints) {
+              return SingleChildScrollView(
+                // Cho phép cuộn nếu màn hình quá nhỏ
+                child: ConstrainedBox(
+                  // Buộc nội dung phải cao ít nhất bằng chiều cao màn hình
+                  constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: IntrinsicHeight(
+                      // Giúp Column tính toán chiều cao nội tại chính xác
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          // --- 1. Tiêu đề ---
+                          const Column(
+                            children: [
+                              SizedBox(height: 20),
+                              Text(
+                                "Magnetometer",
+                                style: TextStyle(
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              Text("Detect strong magnetic fields"),
+                            ],
+                          ),
+
+                          // --- 2. Đồng hồ ---
+                          MagneticGauge(
+                            value: state.displayedValue,
+                            maximum: 200.0,
+                          ),
+
+                          // --- 3. Thanh trượt ---
+                          _buildSensitivitySlider(context, state.baselineNoise),
+
+                          // --- 4. Nút Stop/Start ---
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 20.0),
+                            child: ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.red,
+                                minimumSize: const Size(200, 50),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(30),
+                                ),
+                              ),
+                              onPressed: () {
+                                if (state.status ==
+                                    MagneticScannerStatus.scanning) {
+                                  context.read<MagneticScannerBloc>().add(
+                                    MagneticScanStopped(),
+                                  );
+                                } else {
+                                  context.read<MagneticScannerBloc>().add(
+                                    MagneticScanStarted(),
+                                  );
+                                }
+                              },
+                              child: Text(
+                                state.status == MagneticScannerStatus.scanning
+                                    ? "Stop"
+                                    : "Start",
+                                style: const TextStyle(fontSize: 18),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                    Text("Detect strong magnetic fields"),
-                  ],
-                ),
-
-                MagneticGauge(value: state.displayedValue, maximum: 200.0),
-
-                _buildSensitivitySlider(context, state.baselineNoise),
-
-                // --- 4. Nút Stop/Start ---
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.red,
-                    minimumSize: const Size(200, 50),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30),
-                    ),
-                  ),
-                  onPressed: () {
-                    if (state.status == MagneticScannerStatus.scanning) {
-                      context.read<MagneticScannerBloc>().add(
-                        MagneticScanStopped(),
-                      );
-                    } else {
-                      context.read<MagneticScannerBloc>().add(
-                        MagneticScanStarted(),
-                      );
-                    }
-                  },
-                  child: Text(
-                    state.status == MagneticScannerStatus.scanning
-                        ? "Stop"
-                        : "Start",
-                    style: const TextStyle(fontSize: 18),
                   ),
                 ),
-              ],
-            ),
+              );
+            },
           );
         },
       ),

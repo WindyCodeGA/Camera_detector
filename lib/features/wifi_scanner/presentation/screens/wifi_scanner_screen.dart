@@ -13,7 +13,6 @@ class WifiScannerScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocBuilder<WifiScannerBloc, WifiScannerState>(
       builder: (context, state) {
-        // Dùng switch-case để quyết định UI
         switch (state.status) {
           case WifiScannerStatus.initial:
             return _buildStartUI(context, isLoading: false);
