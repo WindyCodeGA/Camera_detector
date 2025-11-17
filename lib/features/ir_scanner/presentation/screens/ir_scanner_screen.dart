@@ -70,7 +70,7 @@ class _IRScannerScreenState extends State<IRScannerScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Infrared Scan'),
+        title: const Text('Infrared Scan1'),
         centerTitle: true,
         actions: [
           IconButton(

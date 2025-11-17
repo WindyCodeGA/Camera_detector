@@ -47,9 +47,9 @@ class IrScannerBloc extends Bloc<IrScannerEvent, IrScannerState>
 
     try {
       // 1. Kiểm tra quyền
-      var status = await Permission.camera.request();
-      if (!status.isGranted) {
-        throw Exception("Quyền truy cập Camera bị từ chối.");
+      final isGranted = await Permission.camera.isGranted;
+      if (!isGranted) {
+        throw Exception("Quyền truy cập Camera đã bị từ chối.");
       }
 
       // 2. Lấy danh sách Camera (chỉ một lần)

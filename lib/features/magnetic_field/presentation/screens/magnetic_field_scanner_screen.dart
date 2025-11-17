@@ -114,14 +114,19 @@ class _MagneticFieldScannerScreenState
           return LayoutBuilder(
             builder: (context, constraints) {
               return SingleChildScrollView(
-                // Cho phép cuộn nếu màn hình quá nhỏ
                 child: ConstrainedBox(
-                  // Buộc nội dung phải cao ít nhất bằng chiều cao màn hình
-                  constraints: BoxConstraints(minHeight: constraints.maxHeight),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
+                  constraints: BoxConstraints(
+                    minHeight: constraints.maxHeight,
+                    // Đặt minWidth để Container không bị co lại quá mức nếu không có child nào full width
+                    minWidth: constraints.maxWidth,
+                  ),
+                  child: Container(
+                    width: double
+                        .infinity, // Đảm bảo Container chiếm toàn bộ chiều rộng
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16.0,
+                    ), // Giữ padding ngang
                     child: IntrinsicHeight(
-                      // Giúp Column tính toán chiều cao nội tại chính xác
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         crossAxisAlignment: CrossAxisAlignment.center,
@@ -142,9 +147,15 @@ class _MagneticFieldScannerScreenState
                           ),
 
                           // --- 2. Đồng hồ ---
-                          MagneticGauge(
-                            value: state.displayedValue,
-                            maximum: 200.0,
+                          Expanded(
+                            // Sử dụng Expanded để MagneticGauge chiếm hết không gian còn lại
+                            child: Align(
+                              alignment: Alignment.center,
+                              child: MagneticGauge(
+                                value: state.displayedValue,
+                                maximum: 200.0,
+                              ),
+                            ),
                           ),
 
                           // --- 3. Thanh trượt ---
@@ -152,7 +163,10 @@ class _MagneticFieldScannerScreenState
 
                           // --- 4. Nút Stop/Start ---
                           Padding(
-                            padding: const EdgeInsets.only(bottom: 20.0),
+                            padding: const EdgeInsets.only(
+                              top: 10.0,
+                              bottom: 10.0,
+                            ), // Giảm bottom padding
                             child: ElevatedButton(
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.red,
