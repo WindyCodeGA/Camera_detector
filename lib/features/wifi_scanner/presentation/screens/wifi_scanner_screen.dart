@@ -6,38 +6,94 @@ import 'package:wifi_scan/wifi_scan.dart';
 // Import BLoC của chúng ta
 import '../../application/wifi_scanner_bloc.dart';
 
-class WifiScannerScreen extends StatelessWidget {
+// SỬA: Chuyển thành StatefulWidget để quản lý vòng đời
+class WifiScannerScreen extends StatefulWidget {
   const WifiScannerScreen({super.key});
 
   @override
+  State<WifiScannerScreen> createState() => _WifiScannerScreenState();
+}
+
+class _WifiScannerScreenState extends State<WifiScannerScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // TỰ ĐỘNG BẮT ĐẦU QUÉT KHI VÀO MÀN HÌNH
+    context.read<WifiScannerBloc>().add(ScanStarted());
+  }
+
+  @override
+  void dispose() {
+    // QUAN TRỌNG: DỪNG QUÉT NGAY KHI RỜI ĐI
+    // Để giải phóng tài nguyên cho tab khác (Camera/Bluetooth)
+    context.read<WifiScannerBloc>().add(ScanStopped());
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return BlocBuilder<WifiScannerBloc, WifiScannerState>(
-      builder: (context, state) {
-        switch (state.status) {
-          case WifiScannerStatus.initial:
-            return _buildStartUI(context, isLoading: false);
+    return Scaffold(
+      // Thêm Scaffold nếu chưa có (tuỳ chọn, để an toàn)
+      appBar: AppBar(
+        title: const Text('Wi-Fi Scanner'),
+        centerTitle: true,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: () {
+              // Nút reload thủ công
+              context.read<WifiScannerBloc>().add(ScanStarted());
+            },
+          ),
+        ],
+      ),
+      body: BlocBuilder<WifiScannerBloc, WifiScannerState>(
+        builder: (context, state) {
+          switch (state.status) {
+            case WifiScannerStatus.initial:
+              // Dù auto-start, vẫn giữ UI này phòng trường hợp cần thiết
+              return _buildStartUI(context, isLoading: false);
 
-          case WifiScannerStatus.loading:
-            return _buildStartUI(context, isLoading: true);
+            case WifiScannerStatus.loading:
+              return _buildStartUI(context, isLoading: true);
 
-          case WifiScannerStatus.permissionDenied:
-            return _buildPermissionDeniedUI(context);
+            case WifiScannerStatus.permissionDenied:
+              return _buildPermissionDeniedUI(context);
 
-          case WifiScannerStatus.scanning:
-            return _buildScanListUI(context, state.networks);
+            case WifiScannerStatus.scanning:
+              return _buildScanListUI(context, state.networks);
 
-          case WifiScannerStatus.error:
-            return Center(
-              child: Text(
-                "Đã xảy ra lỗi: ${state.errorMessage ?? 'Không xác định'}",
-              ),
-            );
-        }
-      },
+            case WifiScannerStatus.error:
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(
+                      Icons.error_outline,
+                      color: Colors.red,
+                      size: 50,
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      "Lỗi: ${state.errorMessage ?? 'Không xác định'}",
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 10),
+                    ElevatedButton(
+                      onPressed: () =>
+                          context.read<WifiScannerBloc>().add(ScanStarted()),
+                      child: const Text("Thử lại"),
+                    ),
+                  ],
+                ),
+              );
+          }
+        },
+      ),
     );
   }
 
-  // --- CÁC HÀM XÂY DỰNG UI ---
+  // --- CÁC HÀM XÂY DỰNG UI (GIỮ NGUYÊN) ---
 
   Widget _buildStartUI(BuildContext context, {required bool isLoading}) {
     return Column(
@@ -52,6 +108,7 @@ class WifiScannerScreen extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 20),
+        // Vẫn giữ nút này nhưng thực tế nó sẽ tự chạy ở initState
         ElevatedButton.icon(
           icon: const Icon(Icons.wifi),
           label: Text(isLoading ? "Scanning..." : "Start Wi-Fi Scan"),
@@ -59,7 +116,6 @@ class WifiScannerScreen extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
             textStyle: const TextStyle(fontSize: 18),
           ),
-          // Khi nhấn, gửi sự kiện ScanStarted
           onPressed: isLoading
               ? null
               : () => context.read<WifiScannerBloc>().add(ScanStarted()),
@@ -84,16 +140,19 @@ class WifiScannerScreen extends StatelessWidget {
         final color = _getSignalColor(wifi.level);
 
         return Card(
+          margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
           child: ListTile(
+            leading: Icon(Icons.wifi, color: color),
             title: Text(
-              "SSID: ${wifi.ssid.isNotEmpty ? wifi.ssid : '(Hidden Network)'}",
+              wifi.ssid.isNotEmpty ? wifi.ssid : '(Hidden Network)',
+              style: const TextStyle(fontWeight: FontWeight.bold),
             ),
             subtitle: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text("BSSID: ${wifi.bssid}"),
                 Text(
-                  "Mức tín hiệu: ${wifi.level} dBm ($label)",
+                  "${wifi.level} dBm ($label)",
                   style: TextStyle(fontWeight: FontWeight.bold, color: color),
                 ),
               ],
@@ -104,7 +163,6 @@ class WifiScannerScreen extends StatelessWidget {
     );
   }
 
-  // UI khi bị từ chối quyền
   Widget _buildPermissionDeniedUI(BuildContext context) {
     return Center(
       child: Column(
@@ -119,7 +177,7 @@ class WifiScannerScreen extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           const Text(
-            "Vui lòng cấp quyền vị trí để quét Wi-Fi.",
+            "Cần quyền vị trí để quét Wi-Fi (Yêu cầu của Android).",
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 16),
@@ -134,7 +192,6 @@ class WifiScannerScreen extends StatelessWidget {
   }
 
   // --- CÁC HÀM HELPER ---
-  // (Lấy từ code cũ của bạn)
 
   String _getSignalLabel(int level) {
     if (level >= -50) return "Very Close";

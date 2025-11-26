@@ -7,13 +7,19 @@ abstract class WifiScannerEvent extends Equatable {
   List<Object> get props => [];
 }
 
-// Khi người dùng nhấn nút "Start Wi-Fi Scan"
+// Khi người dùng nhấn nút "Start Wi-Fi Scan" (hoặc vào màn hình)
 class ScanStarted extends WifiScannerEvent {}
+
+// --- QUAN TRỌNG: THÊM SỰ KIỆN NÀY ---
+// Khi người dùng rời khỏi màn hình
+class ScanStopped extends WifiScannerEvent {}
+// ------------------------------------
 
 // Yêu cầu lại quyền (nếu bị từ chối)
 class PermissionRequested extends WifiScannerEvent {}
 
 // --- Sự kiện nội bộ của BLoC ---
+
 // Khi có kết quả quét mới từ timer
 class _ScanResultsUpdated extends WifiScannerEvent {
   final List<WiFiAccessPoint> networks;
@@ -23,14 +29,7 @@ class _ScanResultsUpdated extends WifiScannerEvent {
   List<Object> get props => [networks];
 }
 
-// Khi trạng thái quyền thay đổi
-class _PermissionStatusChanged extends WifiScannerEvent {
-  final PermissionStatus status;
-  const _PermissionStatusChanged(this.status);
-  @override
-  List<Object> get props => [status];
-}
-
+// Khi quét thất bại
 class _ScanFailed extends WifiScannerEvent {
   final String errorMessage;
   const _ScanFailed(this.errorMessage);

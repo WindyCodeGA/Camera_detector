@@ -27,14 +27,12 @@ class MagneticGauge extends StatelessWidget {
       axes: <RadialAxis>[
         RadialAxis(
           minimum: 0,
-          maximum: maximum, // Giống ảnh (0-200)
-          showLabels: false, // Ẩn nhãn mặc định
-          showTicks: true, // Hiển thị các vạch chia
+          maximum: maximum,
+          showLabels: false,
+          showTicks: true,
           tickOffset: -10,
           minorTicksPerInterval: 5,
-          axisLineStyle: const AxisLineStyle(
-            thickness: 0, // Ẩn đường viền trục chính
-          ),
+          axisLineStyle: const AxisLineStyle(thickness: 0),
           pointers: <GaugePointer>[
             RangePointer(
               value: maximum,

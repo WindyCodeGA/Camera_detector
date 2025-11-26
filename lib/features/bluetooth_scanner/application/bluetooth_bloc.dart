@@ -5,12 +5,12 @@ import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:collection/collection.dart';
 import 'package:flutter/foundation.dart';
-part 'bluetooth_event.dart'; // Dùng part để import
-part 'bluetooth_state.dart'; // Dùng part để import
+
+part 'bluetooth_event.dart';
+part 'bluetooth_state.dart';
 
 class BluetoothScannerBloc
     extends Bloc<BluetoothScannerEvent, BluetoothScannerState> {
-  // Các stream subscriptions
   StreamSubscription<List<ScanResult>>? _scanResultsSubscription;
   StreamSubscription<bool>? _isScanningSubscription;
   StreamSubscription<BluetoothAdapterState>? _adapterStateSubscription;
@@ -19,20 +19,40 @@ class BluetoothScannerBloc
   BluetoothScannerBloc() : super(BluetoothScannerState.initial()) {
     // Đăng ký các trình xử lý sự kiện
     on<ToggleScanEvent>(_onToggleScan);
+
+    // --- THÊM SỰ KIỆN DỪNG MỚI ---
+    on<StopScanEvent>(_onStopScan);
+    // -----------------------------
+
     on<ApplyFiltersEvent>(_onApplyFilters);
     on<_IsScanningUpdatedEvent>(_onIsScanningUpdated);
     on<_ScanResultsUpdatedEvent>(_onScanResultsUpdated);
     on<_AdapterStateUpdatedEvent>(_onAdapterStateUpdated);
     on<_UpdateChartEvent>(_onUpdateChart);
 
-    // Khởi tạo các subscriptions
-    _setupBluetoothSubscriptions();
-    _startChartUpdateTimer();
+    // --- QUAN TRỌNG: ĐÃ XÓA CÁC DÒNG KHỞI TẠO TỰ ĐỘNG ---
+    // _setupBluetoothSubscriptions();  <-- XÓA
+    // _startChartUpdateTimer();        <-- XÓA
+
+    // Chỉ lắng nghe adapter state (để biết bluetooth bật/tắt) là an toàn
+    _listenToAdapterState();
   }
 
-  // --- Thiết lập Subscriptions ---
+  // Chỉ lắng nghe trạng thái Adapter (nhẹ nhàng)
+  void _listenToAdapterState() {
+    _adapterStateSubscription = FlutterBluePlus.adapterState.listen(
+      (adapterState) => add(_AdapterStateUpdatedEvent(adapterState)),
+      onError: (e) => debugPrint("Lỗi adapterState stream: $e"),
+    );
+  }
 
-  void _setupBluetoothSubscriptions() {
+  // Hàm này sẽ được gọi khi BẮT ĐẦU QUÉT
+  void _startListeningToScanResults() {
+    // Hủy cái cũ nếu có để tránh duplicate
+    _scanResultsSubscription?.cancel();
+    _isScanningSubscription?.cancel();
+    _chartUpdateTimer?.cancel();
+
     _scanResultsSubscription = FlutterBluePlus.scanResults.listen(
       (results) => add(_ScanResultsUpdatedEvent(results)),
       onError: (e) => debugPrint("Lỗi scanResults stream: $e"),
@@ -43,13 +63,6 @@ class BluetoothScannerBloc
       onError: (e) => debugPrint("Lỗi isScanning stream: $e"),
     );
 
-    _adapterStateSubscription = FlutterBluePlus.adapterState.listen(
-      (adapterState) => add(_AdapterStateUpdatedEvent(adapterState)),
-      onError: (e) => debugPrint("Lỗi adapterState stream: $e"),
-    );
-  }
-
-  void _startChartUpdateTimer() {
     _chartUpdateTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
       add(_UpdateChartEvent());
     });
@@ -64,13 +77,42 @@ class BluetoothScannerBloc
     if (state.isScanning) {
       await FlutterBluePlus.stopScan();
     } else {
+      // BẮT ĐẦU QUÉT
       if (state.status == ScannerStatus.adapterOff) {
-        FlutterBluePlus.turnOn();
+        try {
+          await FlutterBluePlus.turnOn();
+        } catch (e) {
+          debugPrint("Không thể bật Bluetooth: $e");
+          return;
+        }
       }
+
+      // Kích hoạt lắng nghe stream KHI CẦN
+      _startListeningToScanResults();
+
       await FlutterBluePlus.startScan(timeout: const Duration(seconds: 15));
     }
   }
 
+  // --- SỰ KIỆN DỪNG MỚI (Dùng khi rời màn hình) ---
+  Future<void> _onStopScan(
+    StopScanEvent event,
+    Emitter<BluetoothScannerState> emit,
+  ) async {
+    // Dừng quét
+    await FlutterBluePlus.stopScan();
+
+    // Hủy lắng nghe để tiết kiệm tài nguyên
+    _scanResultsSubscription?.cancel();
+    _isScanningSubscription?.cancel();
+    _chartUpdateTimer?.cancel();
+
+    // Reset một phần trạng thái nếu muốn
+    emit(state.copyWith(isScanning: false, status: ScannerStatus.stopped));
+  }
+  // ----------------------------------------------
+
+  // ... (Các hàm _onIsScanningUpdated, _onAdapterStateUpdated... GIỮ NGUYÊN) ...
   void _onIsScanningUpdated(
     _IsScanningUpdatedEvent event,
     Emitter<BluetoothScannerState> emit,
@@ -166,7 +208,7 @@ class BluetoothScannerBloc
     emit(state.copyWith(chartData: newChartData, chartXValue: newX));
   }
 
-  // --- Logic phụ trợ ---
+  // ... (Các hàm logic phụ trợ giữ nguyên) ...
   List<ScanResult> _applyFilterLogic(
     List<ScanResult> allResults,
     double minRssi,
@@ -181,7 +223,6 @@ class BluetoothScannerBloc
           .toList();
     }
     if (onlyConnectable) {
-      // Logic lọc connectable chính xác hơn
       tempResults = tempResults
           .where((r) => r.advertisementData.connectable)
           .toList();
@@ -196,7 +237,6 @@ class BluetoothScannerBloc
     return sumRssi / results.length;
   }
 
-  // --- Dọn dẹp ---
   @override
   Future<void> close() {
     _scanResultsSubscription?.cancel();

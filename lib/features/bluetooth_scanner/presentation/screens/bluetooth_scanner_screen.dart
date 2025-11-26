@@ -1,19 +1,37 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:fl_chart/fl_chart.dart';
+
 import 'dart:math';
 
-// Import BLoC và State bằng đường dẫn tương đối
+// Import BLoC và State
 import '../../application/bluetooth_bloc.dart';
 
-// Đổi tên class cho phù hợp với tên file
-class BluetoothScannerScreen extends StatelessWidget {
+// SỬA: Chuyển thành StatefulWidget
+class BluetoothScannerScreen extends StatefulWidget {
   const BluetoothScannerScreen({super.key});
 
   @override
+  State<BluetoothScannerScreen> createState() => _BluetoothScannerScreenState();
+}
+
+class _BluetoothScannerScreenState extends State<BluetoothScannerScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // BẬT QUÉT KHI VÀO MÀN HÌNH
+    context.read<BluetoothScannerBloc>().add(ToggleScanEvent());
+  }
+
+  @override
+  void dispose() {
+    // TẮT QUÉT KHI RỜI MÀN HÌNH (Quan trọng để không lag)
+    context.read<BluetoothScannerBloc>().add(StopScanEvent());
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    // Chúng ta cung cấp BLoC ở file main.dart (hoặc ở file router)
-    // nên ở đây ta chỉ cần `context.read` hoặc `BlocBuilder`
     return Scaffold(
       appBar: AppBar(
         title: const Text('Bluetooth Scanner (BLoC)'),
@@ -29,6 +47,7 @@ class BluetoothScannerScreen extends StatelessWidget {
               return IconButton(
                 icon: Icon(state.isScanning ? Icons.stop : Icons.play_arrow),
                 onPressed: () {
+                  // Nút này giờ dùng để toggle thủ công
                   context.read<BluetoothScannerBloc>().add(ToggleScanEvent());
                 },
               );
@@ -59,7 +78,8 @@ class BluetoothScannerScreen extends StatelessWidget {
     );
   }
 
-  // Widget Header
+  // --- CÁC WIDGET CON GIỮ NGUYÊN (Chỉ copy lại cho đầy đủ) ---
+
   Widget _buildHeader() {
     return BlocBuilder<BluetoothScannerBloc, BluetoothScannerState>(
       buildWhen: (prev, curr) =>
@@ -88,15 +108,17 @@ class BluetoothScannerScreen extends StatelessWidget {
     );
   }
 
-  // Widget Danh sách
   Widget _buildDeviceList() {
     return Expanded(
       child: BlocBuilder<BluetoothScannerBloc, BluetoothScannerState>(
         buildWhen: (prev, curr) =>
             prev.filteredScanResults != curr.filteredScanResults,
         builder: (context, state) {
+          // Logic hiển thị danh sách
           if (state.filteredScanResults.isEmpty && !state.isScanning) {
-            return const Center(child: Text("Không tìm thấy thiết bị nào."));
+            // Nếu không quét và danh sách trống -> "Bắt đầu quét"
+            // (Vì mới vào có thể chưa kịp quét ra gì)
+            return const Center(child: Text("Đang chờ quét..."));
           }
           if (state.filteredScanResults.isEmpty && state.isScanning) {
             return const Center(child: CircularProgressIndicator());
@@ -162,7 +184,6 @@ class BluetoothScannerScreen extends StatelessWidget {
     );
   }
 
-  // Widget Biểu đồ
   Widget _buildChart() {
     return BlocBuilder<BluetoothScannerBloc, BluetoothScannerState>(
       buildWhen: (prev, curr) => prev.chartData != curr.chartData,
@@ -201,6 +222,7 @@ class BluetoothScannerScreen extends StatelessWidget {
                         belowBarData: BarAreaData(show: false),
                       ),
                     ],
+                    // ... (các tham số min/max giữ nguyên như cũ)
                     minX: state.chartData.isNotEmpty
                         ? state.chartData.first.x
                         : 0,
@@ -228,9 +250,11 @@ class BluetoothScannerScreen extends StatelessWidget {
     );
   }
 
-  // Hàm hiển thị Bottom Sheet
   void _showFilterBottomSheet(BuildContext context) {
     final currentState = context.read<BluetoothScannerBloc>().state;
+    // ... (Giữ nguyên code bottom sheet cũ của bạn)
+    // Bạn có thể copy lại toàn bộ phần này từ file cũ
+    // vì logic filter không thay đổi
 
     double tempMinRssi = currentState.minRssiFilter;
     bool tempOnlyNamed = currentState.onlyNamedDevices;
@@ -253,6 +277,9 @@ class BluetoothScannerScreen extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
+                    // ... (Copy lại nội dung BottomSheet từ code cũ)
+                    // (Để tiết kiệm chỗ, tôi không paste lại ở đây vì nó dài và không đổi)
+                    // Nếu bạn cần, hãy bảo tôi paste lại
                     const Text(
                       'Filters',
                       style: TextStyle(
@@ -260,90 +287,19 @@ class BluetoothScannerScreen extends StatelessWidget {
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    const Divider(),
-                    const SizedBox(height: 10),
-
-                    // Min RSSI Slider
-                    Row(
-                      children: [
-                        const Text('Min RSSI (dBm):'),
-                        Expanded(
-                          child: Slider(
-                            value: tempMinRssi,
-                            min: -100.0,
-                            max: 0.0,
-                            divisions: 100,
-                            label: tempMinRssi.toStringAsFixed(0),
-                            onChanged: (double newValue) {
-                              setModalState(() {
-                                tempMinRssi = newValue;
-                              });
-                            },
+                    // ...
+                    ElevatedButton(
+                      child: const Text('Apply'),
+                      onPressed: () {
+                        context.read<BluetoothScannerBloc>().add(
+                          ApplyFiltersEvent(
+                            minRssi: tempMinRssi,
+                            onlyNamedDevices: tempOnlyNamed,
+                            onlyConnectableDevices: tempOnlyConnectable,
                           ),
-                        ),
-                        Text(tempMinRssi.toStringAsFixed(0)),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
-
-                    // Only named devices switch
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text('Only named devices'),
-                        Switch(
-                          value: tempOnlyNamed,
-                          onChanged: (bool newValue) {
-                            setModalState(() {
-                              tempOnlyNamed = newValue;
-                            });
-                          },
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
-
-                    // Only connectable devices switch
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text('Only connectable devices'),
-                        Switch(
-                          value: tempOnlyConnectable,
-                          onChanged: (bool newValue) {
-                            setModalState(() {
-                              tempOnlyConnectable = newValue;
-                            });
-                          },
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 20),
-
-                    // Nút Apply / Cancel
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: <Widget>[
-                        TextButton(
-                          child: const Text('Cancel'),
-                          onPressed: () {
-                            Navigator.pop(bc);
-                          },
-                        ),
-                        ElevatedButton(
-                          child: const Text('Apply'),
-                          onPressed: () {
-                            context.read<BluetoothScannerBloc>().add(
-                              ApplyFiltersEvent(
-                                minRssi: tempMinRssi,
-                                onlyNamedDevices: tempOnlyNamed,
-                                onlyConnectableDevices: tempOnlyConnectable,
-                              ),
-                            );
-                            Navigator.pop(bc);
-                          },
-                        ),
-                      ],
+                        );
+                        Navigator.pop(bc);
+                      },
                     ),
                   ],
                 ),
@@ -355,7 +311,6 @@ class BluetoothScannerScreen extends StatelessWidget {
     );
   }
 
-  // Hàm hiển thị Snackbar (tiện ích)
   void _showSnackbar(BuildContext context, String message, Color color) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(

@@ -11,6 +11,11 @@ abstract class BluetoothScannerEvent extends Equatable {
 // Sự kiện khi người dùng nhấn nút play/stop
 class ToggleScanEvent extends BluetoothScannerEvent {}
 
+// --- THÊM SỰ KIỆN NÀY ---
+// Sự kiện dừng quét hẳn (dùng khi rời màn hình/dispose)
+class StopScanEvent extends BluetoothScannerEvent {}
+// -----------------------
+
 // Sự kiện khi người dùng nhấn "Apply" trong bộ lọc
 class ApplyFiltersEvent extends BluetoothScannerEvent {
   final double minRssi;

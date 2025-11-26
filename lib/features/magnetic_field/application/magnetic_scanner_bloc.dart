@@ -23,7 +23,7 @@ class MagneticScannerBloc
     MagneticScanStarted event,
     Emitter<MagneticScannerState> emit,
   ) {
-    _sensorSubscription?.cancel(); // Hủy sub cũ (nếu có)
+    _sensorSubscription?.cancel();
     _sensorSubscription = magnetometerEvents.listen(
       (sensorEvent) {
         add(_MagneticSensorUpdated(sensorEvent));

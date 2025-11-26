@@ -13,56 +13,70 @@ class WifiScannerBloc extends Bloc<WifiScannerEvent, WifiScannerState> {
   WifiScannerBloc() : super(WifiScannerState.initial()) {
     // Đăng ký các trình xử lý sự kiện
     on<ScanStarted>(_onScanStarted);
+    on<ScanStopped>(_onScanStopped); // <--- ĐĂNG KÝ SỰ KIỆN MỚI
     on<PermissionRequested>(_onPermissionRequested);
     on<_ScanResultsUpdated>(_onResultsUpdated);
-    on<_PermissionStatusChanged>(_onPermissionStatusChanged);
     on<_ScanFailed>(_onScanFailed);
 
-    // Bắt đầu bằng việc kiểm tra quyền ngay lập tức
-    add(PermissionRequested());
+    // --- QUAN TRỌNG: ĐÃ XÓA DÒNG NÀY ---
+    // add(PermissionRequested());
+    // (Để UI tự gọi khi cần, không gọi tự động gây lag)
   }
 
   // --- Trình xử lý sự kiện ---
 
-  // Xử lý khi người dùng nhấn "Start Scan"
+  // 1. BẮT ĐẦU QUÉT
   Future<void> _onScanStarted(
     ScanStarted event,
     Emitter<WifiScannerState> emit,
   ) async {
-    // 1. Kiểm tra quyền một lần nữa
+    // Nếu đang quét rồi thì thôi
+    if (state.status == WifiScannerStatus.scanning) return;
+
+    // Kiểm tra quyền
     final status = await Permission.location.status;
     if (!status.isGranted) {
-      emit(state.copyWith(status: WifiScannerStatus.permissionDenied));
+      // Nếu chưa có quyền, thử xin quyền luôn
+      add(PermissionRequested());
       return;
     }
 
-    // 2. Chuyển sang trạng thái "loading" (giống code cũ)
+    // Chuyển sang loading
     emit(state.copyWith(status: WifiScannerStatus.loading));
 
-    // 3. Đợi 3 giây (giống code cũ)
+    // Giả lập delay 3 giây (animation)
     await Future.delayed(const Duration(seconds: 3));
 
-    // 4. Bắt đầu quét
+    // Bắt đầu quét định kỳ
     _startPeriodicScan();
     emit(state.copyWith(status: WifiScannerStatus.scanning));
   }
 
-  // Xử lý khi yêu cầu quyền
+  // 2. DỪNG QUÉT (MỚI) - Dùng khi chuyển tab
+  Future<void> _onScanStopped(
+    ScanStopped event,
+    Emitter<WifiScannerState> emit,
+  ) async {
+    _scanTimer?.cancel(); // Hủy timer
+    // Reset về trạng thái ban đầu (hoặc giữ nguyên list nếu muốn)
+    emit(state.copyWith(status: WifiScannerStatus.initial));
+  }
+
+  // 3. XIN QUYỀN
   Future<void> _onPermissionRequested(
     PermissionRequested event,
     Emitter<WifiScannerState> emit,
   ) async {
     final status = await Permission.location.request();
     if (status.isGranted) {
-      // Nếu được cấp quyền, quay về màn hình 'initial' (sẵn sàng)
-      emit(state.copyWith(status: WifiScannerStatus.initial));
+      // Nếu được cấp quyền, tự động bắt đầu quy trình quét
+      add(ScanStarted());
     } else {
-      // Nếu từ chối, hiển thị lỗi
       emit(state.copyWith(status: WifiScannerStatus.permissionDenied));
     }
   }
 
-  // Xử lý khi có kết quả Wi-Fi mới
+  // 4. CẬP NHẬT KẾT QUẢ
   void _onResultsUpdated(
     _ScanResultsUpdated event,
     Emitter<WifiScannerState> emit,
@@ -75,24 +89,7 @@ class WifiScannerBloc extends Bloc<WifiScannerEvent, WifiScannerState> {
     );
   }
 
-  // --- Logic phụ trợ ---
-
-  // Bắt đầu timer quét
-  void _startPeriodicScan() {
-    _scanTimer?.cancel(); // Hủy timer cũ nếu có
-
-    // Quét ngay lập tức 1 lần
-    _scanWifi();
-
-    // Sau đó quét định kỳ mỗi 2 giây
-    _scanTimer = Timer.periodic(const Duration(seconds: 2), (_) => _scanWifi());
-  }
-
-  void _onPermissionStatusChanged(
-    _PermissionStatusChanged event,
-    Emitter<WifiScannerState> emit,
-  ) {}
-
+  // 5. XỬ LÝ LỖI
   void _onScanFailed(_ScanFailed event, Emitter<WifiScannerState> emit) {
     emit(
       state.copyWith(
@@ -102,26 +99,36 @@ class WifiScannerBloc extends Bloc<WifiScannerEvent, WifiScannerState> {
     );
   }
 
-  // Hàm quét Wi-Fi
+  // --- Logic phụ trợ ---
+
+  void _startPeriodicScan() {
+    _scanTimer?.cancel();
+    _scanWifi(); // Quét ngay phát đầu tiên
+    // Quét lại mỗi 5 giây (2 giây là hơi nhanh, dễ gây lag máy)
+    _scanTimer = Timer.periodic(const Duration(seconds: 5), (_) => _scanWifi());
+  }
+
   Future<void> _scanWifi() async {
     try {
-      final canStartScan = await WiFiScan.instance.startScan();
-      if (canStartScan != true) {
-        // Xử lý lỗi nếu không thể bắt đầu quét
-        addError(Exception("Không thể bắt đầu quét Wi-Fi"));
+      // Kiểm tra xem có thể quét không
+      final canScan = await WiFiScan.instance.canStartScan(
+        askPermissions: false,
+      );
+      if (canScan != CanStartScan.yes) {
+        // Nếu không quét được (do phần cứng hoặc throttle), bỏ qua lượt này
         return;
       }
 
-      final results = await WiFiScan.instance.getScannedResults();
-
-      add(_ScanResultsUpdated(results));
+      final started = await WiFiScan.instance.startScan();
+      if (started) {
+        final results = await WiFiScan.instance.getScannedResults();
+        add(_ScanResultsUpdated(results));
+      }
     } catch (e) {
-      addError(e);
       add(_ScanFailed(e.toString()));
     }
   }
 
-  // --- Dọn dẹp ---
   @override
   Future<void> close() {
     _scanTimer?.cancel();
