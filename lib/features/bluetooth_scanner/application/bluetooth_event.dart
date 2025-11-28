@@ -1,22 +1,18 @@
-part of 'bluetooth_bloc.dart'; // part of để liên kết với file BLoC
+part of 'bluetooth_bloc.dart';
 
-// Lớp cơ sở cho tất cả các sự kiện
 abstract class BluetoothScannerEvent extends Equatable {
   const BluetoothScannerEvent();
-
   @override
   List<Object> get props => [];
 }
 
-// Sự kiện khi người dùng nhấn nút play/stop
+// Bật quét (Nút Play)
 class ToggleScanEvent extends BluetoothScannerEvent {}
 
-// --- THÊM SỰ KIỆN NÀY ---
-// Sự kiện dừng quét hẳn (dùng khi rời màn hình/dispose)
+// Dừng quét (Khi rời màn hình)
 class StopScanEvent extends BluetoothScannerEvent {}
-// -----------------------
 
-// Sự kiện khi người dùng nhấn "Apply" trong bộ lọc
+// Áp dụng bộ lọc
 class ApplyFiltersEvent extends BluetoothScannerEvent {
   final double minRssi;
   final bool onlyNamedDevices;
@@ -32,34 +28,26 @@ class ApplyFiltersEvent extends BluetoothScannerEvent {
   List<Object> get props => [minRssi, onlyNamedDevices, onlyConnectableDevices];
 }
 
-// --- Các sự kiện nội bộ BLoC (UI không gọi) ---
-
-// Sự kiện khi trạng thái quét (isScanning) thay đổi
+// --- Sự kiện nội bộ ---
 class _IsScanningUpdatedEvent extends BluetoothScannerEvent {
   final bool isScanning;
   const _IsScanningUpdatedEvent(this.isScanning);
-
   @override
   List<Object> get props => [isScanning];
 }
 
-// Sự kiện khi có kết quả quét mới
 class _ScanResultsUpdatedEvent extends BluetoothScannerEvent {
   final List<ScanResult> results;
   const _ScanResultsUpdatedEvent(this.results);
-
   @override
   List<Object> get props => [results];
 }
 
-// Sự kiện khi trạng thái adapter (on/off) thay đổi
 class _AdapterStateUpdatedEvent extends BluetoothScannerEvent {
   final BluetoothAdapterState adapterState;
   const _AdapterStateUpdatedEvent(this.adapterState);
-
   @override
   List<Object> get props => [adapterState];
 }
 
-// Sự kiện từ Timer để cập nhật biểu đồ
 class _UpdateChartEvent extends BluetoothScannerEvent {}

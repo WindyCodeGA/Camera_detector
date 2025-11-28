@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:lottie/lottie.dart';
 import 'package:wifi_scan/wifi_scan.dart';
+import 'package:network_info_plus/network_info_plus.dart';
+import 'network_devices_screen.dart';
 
-// Import BLoC của chúng ta
 import '../../application/wifi_scanner_bloc.dart';
 
-// SỬA: Chuyển thành StatefulWidget để quản lý vòng đời
 class WifiScannerScreen extends StatefulWidget {
   const WifiScannerScreen({super.key});
 
@@ -18,14 +18,12 @@ class _WifiScannerScreenState extends State<WifiScannerScreen> {
   @override
   void initState() {
     super.initState();
-    // TỰ ĐỘNG BẮT ĐẦU QUÉT KHI VÀO MÀN HÌNH
-    context.read<WifiScannerBloc>().add(ScanStarted());
+    // TẮT TỰ ĐỘNG QUÉT (Theo yêu cầu của bạn)
+    // context.read<WifiScannerBloc>().add(ScanStarted());
   }
 
   @override
   void dispose() {
-    // QUAN TRỌNG: DỪNG QUÉT NGAY KHI RỜI ĐI
-    // Để giải phóng tài nguyên cho tab khác (Camera/Bluetooth)
     context.read<WifiScannerBloc>().add(ScanStopped());
     super.dispose();
   }
@@ -33,7 +31,6 @@ class _WifiScannerScreenState extends State<WifiScannerScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // Thêm Scaffold nếu chưa có (tuỳ chọn, để an toàn)
       appBar: AppBar(
         title: const Text('Wi-Fi Scanner'),
         centerTitle: true,
@@ -41,7 +38,6 @@ class _WifiScannerScreenState extends State<WifiScannerScreen> {
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: () {
-              // Nút reload thủ công
               context.read<WifiScannerBloc>().add(ScanStarted());
             },
           ),
@@ -51,7 +47,6 @@ class _WifiScannerScreenState extends State<WifiScannerScreen> {
         builder: (context, state) {
           switch (state.status) {
             case WifiScannerStatus.initial:
-              // Dù auto-start, vẫn giữ UI này phòng trường hợp cần thiết
               return _buildStartUI(context, isLoading: false);
 
             case WifiScannerStatus.loading:
@@ -93,8 +88,6 @@ class _WifiScannerScreenState extends State<WifiScannerScreen> {
     );
   }
 
-  // --- CÁC HÀM XÂY DỰNG UI (GIỮ NGUYÊN) ---
-
   Widget _buildStartUI(BuildContext context, {required bool isLoading}) {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
@@ -108,7 +101,6 @@ class _WifiScannerScreenState extends State<WifiScannerScreen> {
           ),
         ),
         const SizedBox(height: 20),
-        // Vẫn giữ nút này nhưng thực tế nó sẽ tự chạy ở initState
         ElevatedButton.icon(
           icon: const Icon(Icons.wifi),
           label: Text(isLoading ? "Scanning..." : "Start Wi-Fi Scan"),
@@ -157,6 +149,58 @@ class _WifiScannerScreenState extends State<WifiScannerScreen> {
                 ),
               ],
             ),
+            trailing: const Icon(
+              Icons.arrow_forward_ios,
+              size: 16,
+              color: Colors.grey,
+            ),
+
+            // --- SỰ KIỆN NHẤN VÀO MẠNG ---
+            onTap: () async {
+              final info = NetworkInfo();
+              String? currentBSSID = await info.getWifiBSSID();
+
+              if (!context.mounted) return;
+
+              // So sánh BSSID (địa chỉ MAC của router)
+              bool isConnected =
+                  currentBSSID != null &&
+                  wifi.bssid.toLowerCase() == currentBSSID.toLowerCase();
+
+              // Fallback: So sánh tên SSID nếu BSSID bị ẩn (Android 12+)
+              if (!isConnected) {
+                String? currentSSID = await info.getWifiName();
+                String targetSSID = wifi.ssid;
+                if (currentSSID != null) {
+                  currentSSID = currentSSID.replaceAll(
+                    '"',
+                    '',
+                  ); // Xóa ngoặc kép
+                  if (currentSSID == targetSSID) isConnected = true;
+                }
+              }
+              if (!context.mounted) return;
+              if (isConnected) {
+                // Chuyển sang màn hình quét thiết bị
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => NetworkDevicesScreen(ssid: wifi.ssid),
+                  ),
+                );
+              } else {
+                // Thông báo lỗi
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      "Vui lòng kết nối vào mạng '${wifi.ssid}' để quét thiết bị!",
+                    ),
+                    backgroundColor: Colors.orange,
+                    duration: const Duration(seconds: 2),
+                  ),
+                );
+              }
+            },
           ),
         );
       },
@@ -190,8 +234,6 @@ class _WifiScannerScreenState extends State<WifiScannerScreen> {
       ),
     );
   }
-
-  // --- CÁC HÀM HELPER ---
 
   String _getSignalLabel(int level) {
     if (level >= -50) return "Very Close";

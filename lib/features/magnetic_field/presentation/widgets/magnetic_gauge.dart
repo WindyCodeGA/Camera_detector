@@ -5,18 +5,14 @@ class MagneticGauge extends StatelessWidget {
   final double value;
   final double maximum;
 
-  const MagneticGauge({
-    super.key,
-    required this.value,
-    this.maximum = 200.0, // Đặt giá trị max (giống ảnh)
-  });
+  const MagneticGauge({super.key, required this.value, this.maximum = 200.0});
 
   // Helper để lấy màu dựa trên giá trị
   Color _getStrengthColor(double val) {
-    // Các ngưỡng này dựa trên giá trị ĐÃ LỌC
-    if (val > 30) return Colors.red;
-    if (val > 10) return Colors.orange;
-    return Colors.white; // Màu bình thường
+    if (val > 250) return Colors.purpleAccent; // > 250: Tím (Nam châm)
+    if (val > 100) return Colors.red; // > 100: Đỏ (Nguy hiểm)
+    if (val > 30) return Colors.orange; // > 30: Cam (Cảnh báo)
+    return Colors.white; // Bình thường
   }
 
   @override

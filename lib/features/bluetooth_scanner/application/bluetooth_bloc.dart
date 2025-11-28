@@ -1,10 +1,13 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:equatable/equatable.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:fl_chart/fl_chart.dart';
-import 'package:collection/collection.dart';
-import 'package:flutter/foundation.dart';
+import 'package:permission_handler/permission_handler.dart';
+
+// Import Model
+import '../models/bluetooth_device_model.dart';
 
 part 'bluetooth_event.dart';
 part 'bluetooth_state.dart';
@@ -17,38 +20,22 @@ class BluetoothScannerBloc
   Timer? _chartUpdateTimer;
 
   BluetoothScannerBloc() : super(BluetoothScannerState.initial()) {
-    // Đăng ký các trình xử lý sự kiện
     on<ToggleScanEvent>(_onToggleScan);
-
-    // --- THÊM SỰ KIỆN DỪNG MỚI ---
-    on<StopScanEvent>(_onStopScan);
-    // -----------------------------
-
+    on<StopScanEvent>(_onStopScan); // <--- Sự kiện Dừng
     on<ApplyFiltersEvent>(_onApplyFilters);
     on<_IsScanningUpdatedEvent>(_onIsScanningUpdated);
     on<_ScanResultsUpdatedEvent>(_onScanResultsUpdated);
     on<_AdapterStateUpdatedEvent>(_onAdapterStateUpdated);
     on<_UpdateChartEvent>(_onUpdateChart);
 
-    // --- QUAN TRỌNG: ĐÃ XÓA CÁC DÒNG KHỞI TẠO TỰ ĐỘNG ---
-    // _setupBluetoothSubscriptions();  <-- XÓA
-    // _startChartUpdateTimer();        <-- XÓA
-
-    // Chỉ lắng nghe adapter state (để biết bluetooth bật/tắt) là an toàn
-    _listenToAdapterState();
-  }
-
-  // Chỉ lắng nghe trạng thái Adapter (nhẹ nhàng)
-  void _listenToAdapterState() {
+    // Constructor SẠCH: Chỉ lắng nghe trạng thái adapter
     _adapterStateSubscription = FlutterBluePlus.adapterState.listen(
       (adapterState) => add(_AdapterStateUpdatedEvent(adapterState)),
       onError: (e) => debugPrint("Lỗi adapterState stream: $e"),
     );
   }
 
-  // Hàm này sẽ được gọi khi BẮT ĐẦU QUÉT
-  void _startListeningToScanResults() {
-    // Hủy cái cũ nếu có để tránh duplicate
+  void _startListening() {
     _scanResultsSubscription?.cancel();
     _isScanningSubscription?.cancel();
     _chartUpdateTimer?.cancel();
@@ -68,65 +55,126 @@ class BluetoothScannerBloc
     });
   }
 
-  // --- Trình xử lý sự kiện (Event Handlers) ---
-
   Future<void> _onToggleScan(
     ToggleScanEvent event,
     Emitter<BluetoothScannerState> emit,
   ) async {
     if (state.isScanning) {
-      await FlutterBluePlus.stopScan();
+      add(StopScanEvent());
     } else {
-      // BẮT ĐẦU QUÉT
-      if (state.status == ScannerStatus.adapterOff) {
-        try {
-          await FlutterBluePlus.turnOn();
-        } catch (e) {
-          debugPrint("Không thể bật Bluetooth: $e");
+      // 1. Kiểm tra quyền
+      if (defaultTargetPlatform == TargetPlatform.android) {
+        var statusScan = await Permission.bluetoothScan.request();
+        var statusConnect = await Permission.bluetoothConnect.request();
+        var statusLoc = await Permission.location.request();
+        if (statusScan.isDenied ||
+            statusConnect.isDenied ||
+            statusLoc.isDenied) {
           return;
         }
       }
 
-      // Kích hoạt lắng nghe stream KHI CẦN
-      _startListeningToScanResults();
+      // 2. Bật Bluetooth
+      if (state.status == ScannerStatus.adapterOff &&
+          defaultTargetPlatform == TargetPlatform.android) {
+        try {
+          await FlutterBluePlus.turnOn();
+        } catch (_) {}
+      }
 
-      await FlutterBluePlus.startScan(timeout: const Duration(seconds: 15));
+      // 3. Quét
+      _startListening();
+      try {
+        await FlutterBluePlus.startScan(timeout: const Duration(seconds: 15));
+      } catch (e) {
+        debugPrint("Lỗi quét: $e");
+      }
     }
   }
 
-  // --- SỰ KIỆN DỪNG MỚI (Dùng khi rời màn hình) ---
   Future<void> _onStopScan(
     StopScanEvent event,
     Emitter<BluetoothScannerState> emit,
   ) async {
-    // Dừng quét
-    await FlutterBluePlus.stopScan();
-
-    // Hủy lắng nghe để tiết kiệm tài nguyên
+    try {
+      await FlutterBluePlus.stopScan();
+    } catch (_) {}
     _scanResultsSubscription?.cancel();
     _isScanningSubscription?.cancel();
     _chartUpdateTimer?.cancel();
-
-    // Reset một phần trạng thái nếu muốn
     emit(state.copyWith(isScanning: false, status: ScannerStatus.stopped));
   }
-  // ----------------------------------------------
 
-  // ... (Các hàm _onIsScanningUpdated, _onAdapterStateUpdated... GIỮ NGUYÊN) ...
+  // --- LOGIC TÍNH ĐIỂM RỦI RO ---
+  BluetoothDeviceModel _calculateRisk(ScanResult r) {
+    double risk = 0.0;
+    final rssi = r.rssi;
+    final name = r.device.platformName.toLowerCase();
+
+    // 1. Tín hiệu mạnh
+    if (rssi > -50) {
+      risk += 45;
+    } else if (rssi > -70) {
+      risk += 20;
+    }
+
+    // 2. Tên thiết bị
+    if (name.isEmpty) {
+      risk += 25;
+    } else {
+      final suspicious = ['cam', 'hidden', 'esp', 'hc-', 'sh-', 'bt-'];
+      if (suspicious.any((s) => name.contains(s))) risk += 15;
+    }
+
+    // 3. Service UUIDs
+    final suspiciousUUIDs = ['180d', 'ffe0', 'dfb0', 'fe00'];
+    for (var uuid in r.advertisementData.serviceUuids) {
+      if (suspiciousUUIDs.any((s) => uuid.toString().contains(s))) {
+        risk += 20;
+        break;
+      }
+    }
+
+    // 4. Connectable
+    if (r.advertisementData.connectable) risk += 10;
+
+    return BluetoothDeviceModel(
+      scanResult: r,
+      riskScore: risk.clamp(0.0, 100.0),
+    );
+  }
+
+  void _onScanResultsUpdated(
+    _ScanResultsUpdatedEvent event,
+    Emitter<BluetoothScannerState> emit,
+  ) {
+    // Chuyển đổi sang Model và tính điểm
+    final allModels = event.results.map(_calculateRisk).toList();
+
+    final filteredModels = _applyFilterLogic(
+      allModels,
+      state.minRssiFilter,
+      state.onlyNamedDevices,
+      state.onlyConnectableDevices,
+    );
+
+    emit(
+      state.copyWith(
+        allScanResults: allModels,
+        filteredScanResults: filteredModels,
+        avgRssi: _calculateAvgRssi(filteredModels),
+      ),
+    );
+  }
+
+  // ... (Các phần Filter, Chart, AdapterUpdate giữ nguyên như cũ) ...
+
   void _onIsScanningUpdated(
     _IsScanningUpdatedEvent event,
     Emitter<BluetoothScannerState> emit,
   ) {
     if (event.isScanning) {
-      emit(
-        state.copyWith(
-          isScanning: true,
-          status: ScannerStatus.scanning,
-          allScanResults: [],
-          filteredScanResults: [],
-          avgRssi: 0.0,
-        ),
-      );
+      emit(state.copyWith(isScanning: true, status: ScannerStatus.scanning));
     } else {
       emit(state.copyWith(isScanning: false, status: ScannerStatus.stopped));
     }
@@ -142,32 +190,9 @@ class BluetoothScannerBloc
           status: ScannerStatus.adapterOff,
         ),
       );
-    } else if (event.adapterState == BluetoothAdapterState.on &&
-        state.status == ScannerStatus.adapterOff) {
+    } else if (event.adapterState == BluetoothAdapterState.on) {
       emit(state.copyWith(status: ScannerStatus.initial));
     }
-  }
-
-  void _onScanResultsUpdated(
-    _ScanResultsUpdatedEvent event,
-    Emitter<BluetoothScannerState> emit,
-  ) {
-    final allResults = event.results;
-    final filteredResults = _applyFilterLogic(
-      allResults,
-      state.minRssiFilter,
-      state.onlyNamedDevices,
-      state.onlyConnectableDevices,
-    );
-    final avgRssi = _calculateAvgRssi(filteredResults);
-
-    emit(
-      state.copyWith(
-        allScanResults: allResults,
-        filteredScanResults: filteredResults,
-        avgRssi: avgRssi,
-      ),
-    );
   }
 
   void _onApplyFilters(
@@ -181,15 +206,17 @@ class BluetoothScannerBloc
         onlyConnectableDevices: event.onlyConnectableDevices,
       ),
     );
-    final filteredResults = _applyFilterLogic(
+    final filtered = _applyFilterLogic(
       state.allScanResults,
       event.minRssi,
       event.onlyNamedDevices,
       event.onlyConnectableDevices,
     );
-    final avgRssi = _calculateAvgRssi(filteredResults);
     emit(
-      state.copyWith(filteredScanResults: filteredResults, avgRssi: avgRssi),
+      state.copyWith(
+        filteredScanResults: filtered,
+        avgRssi: _calculateAvgRssi(filtered),
+      ),
     );
   }
 
@@ -199,42 +226,34 @@ class BluetoothScannerBloc
   ) {
     final newX = state.chartXValue + 1;
     final newChartData = List<FlSpot>.from(state.chartData);
-    if (newChartData.length >= 10) {
-      newChartData.removeAt(0);
-    }
+    if (newChartData.length >= 10) newChartData.removeAt(0);
     newChartData.add(
       FlSpot(newX.toDouble(), state.filteredScanResults.length.toDouble()),
     );
     emit(state.copyWith(chartData: newChartData, chartXValue: newX));
   }
 
-  // ... (Các hàm logic phụ trợ giữ nguyên) ...
-  List<ScanResult> _applyFilterLogic(
-    List<ScanResult> allResults,
+  List<BluetoothDeviceModel> _applyFilterLogic(
+    List<BluetoothDeviceModel> list,
     double minRssi,
-    bool onlyNamed,
-    bool onlyConnectable,
+    bool named,
+    bool connectable,
   ) {
-    List<ScanResult> tempResults = List.from(allResults);
-    tempResults = tempResults.where((r) => r.rssi >= minRssi).toList();
-    if (onlyNamed) {
-      tempResults = tempResults
-          .where((r) => r.device.platformName.isNotEmpty)
+    var temp = list.where((m) => m.scanResult.rssi >= minRssi).toList();
+    if (named) temp = temp.where((m) => m.name != 'Unknown Device').toList();
+    if (connectable) {
+      temp = temp
+          .where((m) => m.scanResult.advertisementData.connectable)
           .toList();
     }
-    if (onlyConnectable) {
-      tempResults = tempResults
-          .where((r) => r.advertisementData.connectable)
-          .toList();
-    }
-    tempResults.sort((a, b) => b.rssi.compareTo(a.rssi));
-    return tempResults;
+
+    temp.sort((a, b) => b.riskScore.compareTo(a.riskScore));
+    return temp;
   }
 
-  double _calculateAvgRssi(List<ScanResult> results) {
-    if (results.isEmpty) return 0.0;
-    double sumRssi = results.map((r) => r.rssi).sum.toDouble();
-    return sumRssi / results.length;
+  double _calculateAvgRssi(List<BluetoothDeviceModel> list) {
+    if (list.isEmpty) return 0.0;
+    return list.fold(0.0, (sum, m) => sum + m.scanResult.rssi) / list.length;
   }
 
   @override

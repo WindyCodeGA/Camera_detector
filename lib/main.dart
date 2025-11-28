@@ -11,7 +11,7 @@ import 'features/bluetooth_scanner/application/bluetooth_bloc.dart';
 import 'features/wifi_scanner/application/wifi_scanner_bloc.dart';
 import 'features/ir_scanner/application/ir_scanner_bloc.dart';
 import 'features/magnetic_field/application/magnetic_scanner_bloc.dart';
-
+import 'features/history/application/history_bloc.dart';
 // Import Splash Screen
 import 'package:camera_detector/features/splash/application/splash_screen.dart';
 
@@ -33,14 +33,15 @@ class MyApp extends StatelessWidget {
     // Dùng MultiBlocProvider để cung cấp tất cả BLoC
     return MultiBlocProvider(
       providers: [
+        // Cung cấp BLoC Lịch sử
+        BlocProvider<HistoryBloc>(create: (context) => HistoryBloc()),
         // Cung cấp BLoC Bluetooth
         BlocProvider<BluetoothScannerBloc>(
           create: (context) => BluetoothScannerBloc(),
         ),
-
         // Cung cấp BLoC Wifi
         BlocProvider<WifiScannerBloc>(create: (context) => WifiScannerBloc()),
-
+        // Cung cấp BLoC Hồng ngoại
         BlocProvider<IrScannerBloc>(create: (context) => IrScannerBloc()),
         BlocProvider<MagneticScannerBloc>(
           create: (context) => MagneticScannerBloc(),

@@ -30,15 +30,24 @@ class WifiScannerBloc extends Bloc<WifiScannerEvent, WifiScannerState> {
     ScanStarted event,
     Emitter<WifiScannerState> emit,
   ) async {
-    // Nếu đang quét rồi thì thôi
-    if (state.status == WifiScannerStatus.scanning) return;
-
-    // Kiểm tra quyền
+    // 1. Kiểm tra QUYỀN (Permission) - Code cũ
     final status = await Permission.location.status;
     if (!status.isGranted) {
-      // Nếu chưa có quyền, thử xin quyền luôn
+      // Nếu chưa có quyền -> Thử xin quyền
       add(PermissionRequested());
       return;
+    }
+
+    // --- THÊM ĐOẠN NÀY: Kiểm tra GPS (Service) ---
+    // Kiểm tra xem người dùng có bật công tắc Vị trí/GPS không
+    if (await Permission.location.serviceStatus.isDisabled) {
+      emit(
+        state.copyWith(
+          status: WifiScannerStatus.error,
+          errorMessage: "Vui lòng bật GPS (Vị trí) để quét Wi-Fi",
+        ),
+      );
+      return; // Dừng lại, không quét nữa
     }
 
     // Chuyển sang loading

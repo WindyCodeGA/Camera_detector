@@ -22,10 +22,10 @@ class IrFilterChanged extends IrScannerEvent {
 // Bật/tắt đèn flash
 class IrFlashlightToggled extends IrScannerEvent {}
 
-// Bắt đầu quay video (để dành cho tương lai)
+// Bắt đầu quay video
 class IrVideoRecordingStarted extends IrScannerEvent {}
 
-// Dừng quay video (để dành cho tương lai)
+// Dừng quay video
 class IrVideoRecordingStopped extends IrScannerEvent {}
 
 // --- Sự kiện nội bộ BLoC ---

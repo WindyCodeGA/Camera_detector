@@ -11,7 +11,11 @@ class IrScannerState extends Equatable {
   final CameraController? cameraController;
   final IRFilter currentFilter;
   final bool isFlashlightOn;
-  final bool isRecording; // Cho chức năng tương lai
+  final bool isRecording;
+
+  // Biến chứa file video vừa quay xong (để UI hiện thông báo)
+  final XFile? lastRecordedVideo;
+
   final String? errorMessage;
 
   const IrScannerState({
@@ -20,6 +24,7 @@ class IrScannerState extends Equatable {
     required this.currentFilter,
     required this.isFlashlightOn,
     required this.isRecording,
+    this.lastRecordedVideo,
     this.errorMessage,
   });
 
@@ -31,6 +36,7 @@ class IrScannerState extends Equatable {
       currentFilter: IRFilter.red, // Mặc định là bộ lọc đỏ
       isFlashlightOn: false,
       isRecording: false,
+      lastRecordedVideo: null,
     );
   }
 
@@ -41,15 +47,16 @@ class IrScannerState extends Equatable {
     IRFilter? currentFilter,
     bool? isFlashlightOn,
     bool? isRecording,
+    XFile? lastRecordedVideo,
     String? errorMessage,
   }) {
     return IrScannerState(
       status: status ?? this.status,
-      // Quan trọng: Phải cẩn thận khi cập nhật controller
       cameraController: cameraController ?? this.cameraController,
       currentFilter: currentFilter ?? this.currentFilter,
       isFlashlightOn: isFlashlightOn ?? this.isFlashlightOn,
       isRecording: isRecording ?? this.isRecording,
+      lastRecordedVideo: lastRecordedVideo ?? this.lastRecordedVideo,
       errorMessage: errorMessage ?? this.errorMessage,
     );
   }
@@ -61,6 +68,7 @@ class IrScannerState extends Equatable {
     currentFilter,
     isFlashlightOn,
     isRecording,
+    lastRecordedVideo,
     errorMessage,
   ];
 }

@@ -1,25 +1,23 @@
-part of 'bluetooth_bloc.dart'; // part of để liên kết với file BLoC
+part of 'bluetooth_bloc.dart';
 
-// Enum để thể hiện trạng thái chung
 enum ScannerStatus { initial, scanning, stopped, adapterOff, error }
 
 class BluetoothScannerState extends Equatable {
-  // Trạng thái chung
   final ScannerStatus status;
-  final bool isScanning; // Trùng lặp với status nhưng tiện lợi
-  final String? errorMessage; // Thông báo lỗi nếu có
+  final bool isScanning;
+  final String? errorMessage;
 
-  // Dữ liệu bộ lọc
+  // Bộ lọc
   final double minRssiFilter;
   final bool onlyNamedDevices;
   final bool onlyConnectableDevices;
 
-  // Dữ liệu kết quả
-  final List<ScanResult> allScanResults; // Danh sách thô
-  final List<ScanResult> filteredScanResults; // Danh sách đã lọc
+  // Dữ liệu kết quả (Model Mới)
+  final List<BluetoothDeviceModel> allScanResults;
+  final List<BluetoothDeviceModel> filteredScanResults;
   final double avgRssi;
 
-  // Dữ liệu biểu đồ
+  // Biểu đồ
   final List<FlSpot> chartData;
   final int chartXValue;
 
@@ -37,7 +35,6 @@ class BluetoothScannerState extends Equatable {
     required this.chartXValue,
   });
 
-  // Trạng thái khởi tạo
   factory BluetoothScannerState.initial() {
     return const BluetoothScannerState(
       status: ScannerStatus.initial,
@@ -53,7 +50,6 @@ class BluetoothScannerState extends Equatable {
     );
   }
 
-  // Hàm copyWith để tạo trạng thái mới dựa trên trạng thái cũ
   BluetoothScannerState copyWith({
     ScannerStatus? status,
     bool? isScanning,
@@ -61,8 +57,8 @@ class BluetoothScannerState extends Equatable {
     double? minRssiFilter,
     bool? onlyNamedDevices,
     bool? onlyConnectableDevices,
-    List<ScanResult>? allScanResults,
-    List<ScanResult>? filteredScanResults,
+    List<BluetoothDeviceModel>? allScanResults,
+    List<BluetoothDeviceModel>? filteredScanResults,
     double? avgRssi,
     List<FlSpot>? chartData,
     int? chartXValue,

@@ -1,17 +1,16 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:audioplayers/audioplayers.dart'; // ĐÃ THÊM
+import 'package:audioplayers/audioplayers.dart';
 import 'package:vibration/vibration.dart';
 
-// Import BLoC
 import '../../application/magnetic_scanner_bloc.dart';
-// Import Widget đồng hồ
-import 'package:camera_detector/features/magnetic_field/presentation/widgets/magnetic_gauge.dart';
+import '../widgets/magnetic_gauge.dart';
+import '../../../history/application/history_bloc.dart';
+import '../../../history/data/scan_record_model.dart';
 
 class MagneticFieldScannerScreen extends StatefulWidget {
   const MagneticFieldScannerScreen({super.key});
-
   @override
   State<MagneticFieldScannerScreen> createState() =>
       _MagneticFieldScannerScreenState();
@@ -21,16 +20,14 @@ class _MagneticFieldScannerScreenState
     extends State<MagneticFieldScannerScreen> {
   final AudioPlayer _audioPlayer = AudioPlayer();
   bool _isBeepLoaded = false;
-
   Timer? _feedbackTimer;
   bool _isDisposed = false;
 
   @override
   void initState() {
     super.initState();
-
-    context.read<MagneticScannerBloc>().add(MagneticScanStarted());
-    _initAudioPlayer();
+    // ĐÃ TẮT TỰ ĐỘNG QUÉT
+    _initAudio();
   }
 
   @override
@@ -42,62 +39,70 @@ class _MagneticFieldScannerScreenState
     super.dispose();
   }
 
-  Future<void> _initAudioPlayer() async {
+  Future<void> _initAudio() async {
     try {
       await _audioPlayer.setSource(AssetSource('sounds/beep.mp3'));
       await _audioPlayer.setReleaseMode(ReleaseMode.stop);
-
-      if (!_isDisposed) {
-        setState(() {
-          _isBeepLoaded = true;
-        });
-      }
-    } catch (e) {
-      debugPrint("Lỗi tải file âm thanh 'beep.mp3': $e");
-    }
+      if (!_isDisposed) setState(() => _isBeepLoaded = true);
+    } catch (_) {}
   }
 
-  void _triggerFeedback(double displayedValue) {
+  void _triggerFeedback(double val) {
     if (_isDisposed) return;
-
     _feedbackTimer?.cancel();
-    Duration? newInterval;
-
-    if (displayedValue > 30) {
-      newInterval = const Duration(milliseconds: 200);
-    } else if (displayedValue > 10) {
-      newInterval = const Duration(milliseconds: 700);
+    Duration? interval;
+    if (val > 250) {
+      interval = const Duration(milliseconds: 100);
+    } else if (val > 30) {
+      interval = const Duration(milliseconds: 200);
+    } else if (val > 10) {
+      interval = const Duration(milliseconds: 700);
     }
 
-    if (newInterval != null && _isBeepLoaded) {
-      _feedbackTimer = Timer.periodic(newInterval, (_) async {
+    if (interval != null && _isBeepLoaded) {
+      _feedbackTimer = Timer.periodic(interval, (_) async {
         if (_isDisposed) {
           _feedbackTimer?.cancel();
           return;
         }
-
         try {
           await _audioPlayer.stop();
-
           await _audioPlayer.play(AssetSource('sounds/beep.mp3'));
-        } catch (e) {
-          debugPrint("Lỗi phát âm thanh: $e");
-        }
-
-        bool? hasVibrator = await Vibration.hasVibrator();
-        if (hasVibrator == true) {
+        } catch (_) {}
+        if (await Vibration.hasVibrator() == true) {
           Vibration.vibrate(duration: 50);
         }
       });
     }
   }
 
+  void _saveToHistory(double value) {
+    String note = "Mức độ thường";
+    if (value > 250) {
+      note = "Nam châm/Kim loại lớn";
+    } else if (value > 30) {
+      note = "Nguy hiểm (Có thể là Camera)";
+    }
+    final record = ScanRecord(
+      type: ScanType.magnetic,
+      timestamp: DateTime.now(),
+      value: "${value.toStringAsFixed(1)} µT",
+      note: note,
+    );
+    context.read<HistoryBloc>().add(AddHistoryRecord(record));
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text("Đã lưu vào Lịch sử!"),
+        backgroundColor: Colors.green,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return BlocListener<MagneticScannerBloc, MagneticScannerState>(
-      listenWhen: (prev, curr) =>
-          prev.displayedValue != curr.displayedValue ||
-          prev.status != curr.status,
+      listenWhen: (p, c) =>
+          p.displayedValue != c.displayedValue || p.status != c.status,
       listener: (context, state) {
         if (state.status == MagneticScannerStatus.scanning) {
           _triggerFeedback(state.displayedValue);
@@ -108,138 +113,158 @@ class _MagneticFieldScannerScreenState
       child: BlocBuilder<MagneticScannerBloc, MagneticScannerState>(
         builder: (context, state) {
           if (state.status == MagneticScannerStatus.error) {
-            return Center(child: Text("Lỗi cảm biến: ${state.errorMessage}"));
+            return Center(child: Text("Lỗi: ${state.errorMessage}"));
           }
 
-          return LayoutBuilder(
-            builder: (context, constraints) {
-              return SingleChildScrollView(
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(
-                    minHeight: constraints.maxHeight,
-                    // Đặt minWidth để Container không bị co lại quá mức nếu không có child nào full width
-                    minWidth: constraints.maxWidth,
-                  ),
-                  child: Container(
-                    width: double
-                        .infinity, // Đảm bảo Container chiếm toàn bộ chiều rộng
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16.0,
-                    ), // Giữ padding ngang
-                    child: IntrinsicHeight(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          // --- 1. Tiêu đề ---
-                          const Column(
-                            children: [
-                              SizedBox(height: 20),
-                              Text(
-                                "Magnetometer",
-                                style: TextStyle(
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              Text("Detect strong magnetic fields"),
-                            ],
-                          ),
+          bool isScanning = state.status == MagneticScannerStatus.scanning;
 
-                          // --- 2. Đồng hồ ---
-                          Expanded(
-                            // Sử dụng Expanded để MagneticGauge chiếm hết không gian còn lại
-                            child: Align(
-                              alignment: Alignment.center,
-                              child: MagneticGauge(
-                                value: state.displayedValue,
-                                maximum: 200.0,
-                              ),
-                            ),
-                          ),
-
-                          // --- 3. Thanh trượt ---
-                          _buildSensitivitySlider(context, state.baselineNoise),
-
-                          // --- 4. Nút Stop/Start ---
-                          Padding(
-                            padding: const EdgeInsets.only(
-                              top: 10.0,
-                              bottom: 10.0,
-                            ), // Giảm bottom padding
-                            child: ElevatedButton(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.red,
-                                minimumSize: const Size(200, 50),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(30),
-                                ),
-                              ),
-                              onPressed: () {
-                                if (state.status ==
-                                    MagneticScannerStatus.scanning) {
-                                  context.read<MagneticScannerBloc>().add(
-                                    MagneticScanStopped(),
-                                  );
-                                } else {
-                                  context.read<MagneticScannerBloc>().add(
-                                    MagneticScanStarted(),
-                                  );
-                                }
-                              },
-                              child: Text(
-                                state.status == MagneticScannerStatus.scanning
-                                    ? "Stop"
-                                    : "Start",
-                                style: const TextStyle(fontSize: 18),
-                              ),
-                            ),
-                          ),
-                        ],
+          return Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Column(
+                  children: [
+                    SizedBox(height: 20),
+                    Text(
+                      "Magnetometer",
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
-                  ),
+                    Text("Detect strong magnetic fields"),
+                  ],
                 ),
-              );
-            },
+
+                // Đồng hồ & Cảnh báo
+                Column(
+                  children: [
+                    MagneticGauge(value: state.displayedValue, maximum: 2000.0),
+                    const SizedBox(height: 10),
+                    _buildWarningMessage(state.displayedValue),
+                  ],
+                ),
+
+                // Thanh trượt
+                Column(
+                  children: [
+                    const Text("Hiệu chỉnh độ nhạy"),
+                    Slider(
+                      value: state.baselineNoise,
+                      min: 0,
+                      max: 150,
+                      divisions: 150,
+                      activeColor: Colors.red,
+                      onChanged: (v) => context.read<MagneticScannerBloc>().add(
+                        BaselineNoiseChanged(v),
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () => context.read<MagneticScannerBloc>().add(
+                        const BaselineNoiseChanged(0.0),
+                      ),
+                      child: const Text(
+                        "Reset",
+                        style: TextStyle(color: Colors.white70),
+                      ),
+                    ),
+                  ],
+                ),
+
+                // Nút bấm
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: isScanning ? Colors.red : Colors.green,
+                        minimumSize: const Size(120, 50),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(30),
+                        ),
+                      ),
+                      onPressed: () => context.read<MagneticScannerBloc>().add(
+                        isScanning
+                            ? MagneticScanStopped()
+                            : MagneticScanStarted(),
+                      ),
+                      child: Text(
+                        isScanning ? "Stop" : "Start",
+                        style: const TextStyle(
+                          fontSize: 18,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                    ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blue,
+                        minimumSize: const Size(120, 50),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(30),
+                        ),
+                      ),
+                      icon: const Icon(Icons.save, color: Colors.white),
+                      label: const Text(
+                        "Save",
+                        style: TextStyle(color: Colors.white),
+                      ),
+                      onPressed: isScanning
+                          ? () => _saveToHistory(state.displayedValue)
+                          : null,
+                    ),
+                  ],
+                ),
+              ],
+            ),
           );
         },
       ),
     );
   }
 
-  // WIDGET THANH TRƯỢT (GIỮ NGUYÊN)
-  Widget _buildSensitivitySlider(BuildContext context, double baselineNoise) {
-    return Column(
-      children: [
-        const Text("Hiệu chỉnh Độ nhạy (Lọc nhiễu nền)"),
-        Slider(
-          value: baselineNoise,
-          min: 0.0,
-          max: 150.0, // Giới hạn max
-          divisions: 150,
-          label: baselineNoise.toStringAsFixed(0),
-          activeColor: Colors.red, // Màu của thanh trượt
-          onChanged: (newValue) {
-            // Gửi sự kiện đến BLoC khi kéo
-            context.read<MagneticScannerBloc>().add(
-              BaselineNoiseChanged(newValue),
-            );
-          },
+  // Widget hiển thị cảnh báo
+  Widget _buildWarningMessage(double value) {
+    if (value > 250) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: Colors.purple.withValues(alpha: 0.2),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.purpleAccent, width: 1),
         ),
-        TextButton(
-          child: const Text(
-            "Reset Độ nhạy",
-            style: TextStyle(color: Colors.white70),
-          ),
-          onPressed: () {
-            // Đặt lại về 0
-            context.read<MagneticScannerBloc>().add(
-              const BaselineNoiseChanged(0.0),
-            );
-          },
+        child: const Column(
+          children: [
+            Icon(Icons.warning, color: Colors.purpleAccent, size: 30),
+            SizedBox(height: 4),
+            Text(
+              "KHÔNG PHẢI MẠCH ĐIỆN TỬ!",
+              style: TextStyle(
+                color: Colors.purpleAccent,
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            Text(
+              "Đây là Nam châm hoặc Kim loại lớn.",
+              style: TextStyle(color: Colors.white70, fontSize: 14),
+              textAlign: TextAlign.center,
+            ),
+          ],
         ),
-      ],
-    );
+      );
+    }
+    // Thêm cảnh báo nhẹ cho mức nguy hiểm thường
+    else if (value > 30) {
+      return const Text(
+        "⚠️ Phát hiện từ trường mạnh\n(Có thể là thiết bị điện tử)",
+        style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+        textAlign: TextAlign.center,
+      );
+    }
+    return const SizedBox.shrink();
   }
 }

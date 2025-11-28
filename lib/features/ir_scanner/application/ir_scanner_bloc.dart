@@ -5,14 +5,13 @@ import 'package:camera/camera.dart';
 import 'package:equatable/equatable.dart';
 import 'package:flutter/material.dart'; // Cần cho AppLifecycleState
 import 'package:permission_handler/permission_handler.dart';
+import 'package:gal/gal.dart'; // Thư viện lưu Gallery
 
 part 'ir_scanner_event.dart';
 part 'ir_scanner_state.dart';
 
 class IrScannerBloc extends Bloc<IrScannerEvent, IrScannerState>
     with WidgetsBindingObserver {
-  // Mixin để lắng nghe app lifecycle
-
   List<CameraDescription>? _cameras;
 
   IrScannerBloc() : super(IrScannerState.initial()) {
@@ -24,14 +23,13 @@ class IrScannerBloc extends Bloc<IrScannerEvent, IrScannerState>
     on<IrVideoRecordingStopped>(_onVideoRecordingStopped);
     on<_IrAppLifecycleChanged>(_onAppLifecycleChanged);
 
-    // Bắt đầu lắng nghe app lifecycle
+    // Bắt đầu lắng nghe vòng đời ứng dụng
     WidgetsBinding.instance.addObserver(this);
   }
 
   // --- Lắng nghe App Lifecycle ---
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    // Thêm sự kiện nội bộ vào BLoC
     add(_IrAppLifecycleChanged(state));
   }
 
@@ -42,53 +40,46 @@ class IrScannerBloc extends Bloc<IrScannerEvent, IrScannerState>
     Emitter<IrScannerState> emit,
   ) async {
     // Nếu camera đang chạy rồi thì không khởi tạo lại
-    if (state.cameraController != null) {
-      return;
-    }
+    if (state.cameraController != null) return;
 
     emit(state.copyWith(status: IrScannerStatus.loading));
 
     try {
-      // 1. KIỂM TRA QUYỀN (QUAN TRỌNG)
-      // Chúng ta chỉ kiểm tra 'status', KHÔNG gọi 'request()'
-      // Để tránh xung đột UI (Race Condition)
+      // 1. KIỂM TRA QUYỀN (Không request, chỉ check status để tránh crash UI)
       final status = await Permission.camera.status;
-
-      // Nếu chưa được cấp quyền (Denied, PermanentlyDenied, Restricted...)
       if (!status.isGranted) {
-        // Emit mã lỗi đặc biệt để UI hiển thị nút "Cho phép"
         emit(
           state.copyWith(
             status: IrScannerStatus.error,
             errorMessage: "PERMISSION_DENIED",
           ),
         );
-        return; // Dừng lại ngay, không cố mở camera
+        return;
       }
 
-      // 2. Lấy danh sách Camera (chỉ một lần)
+      // 2. Lấy danh sách Camera
       _cameras ??= await availableCameras();
       if (_cameras == null || _cameras!.isEmpty) {
         throw Exception("Không tìm thấy camera khả dụng.");
       }
 
-      // 3. Chọn camera sau (Back Camera)
+      // 3. Chọn camera sau
       CameraDescription? rearCamera = _cameras!.firstWhere(
         (camera) => camera.lensDirection == CameraLensDirection.back,
         orElse: () => _cameras!.first,
       );
 
-      // 4. Tạo và khởi tạo Controller
+      // 4. Tạo Controller
       final controller = CameraController(
         rearCamera,
-        ResolutionPreset
-            .low, // Low để tối ưu hiệu năng cho Image Processing sau này
-        enableAudio: false, // Tắt audio (tránh lỗi quyền Micro khi chưa xin)
+        // Dùng High thay vì Max để ổn định hơn khi quay video trên nhiều dòng máy
+        ResolutionPreset.high,
+        enableAudio: true, // BẬT AUDIO ĐỂ QUAY VIDEO CÓ TIẾNG
+        imageFormatGroup: ImageFormatGroup.jpeg, // Định dạng ảnh chuẩn
       );
 
       await controller.initialize();
 
-      // 5. Emit trạng thái "Ready"
       emit(
         state.copyWith(
           status: IrScannerStatus.ready,
@@ -116,9 +107,7 @@ class IrScannerBloc extends Bloc<IrScannerEvent, IrScannerState>
     Emitter<IrScannerState> emit,
   ) async {
     final controller = state.cameraController;
-    if (controller == null || !controller.value.isInitialized) {
-      return;
-    }
+    if (controller == null || !controller.value.isInitialized) return;
 
     try {
       if (state.isFlashlightOn) {
@@ -137,7 +126,7 @@ class IrScannerBloc extends Bloc<IrScannerEvent, IrScannerState>
     }
   }
 
-  // Xử lý khi app lifecycle thay đổi (Vào nền/Quay lại)
+  // Xử lý khi app lifecycle thay đổi
   Future<void> _onAppLifecycleChanged(
     _IrAppLifecycleChanged event,
     Emitter<IrScannerState> emit,
@@ -145,33 +134,27 @@ class IrScannerBloc extends Bloc<IrScannerEvent, IrScannerState>
     final controller = state.cameraController;
 
     if (event.state == AppLifecycleState.inactive) {
-      // Khi app bị tạm dừng (ví dụ: kéo notification, nhấn Home), tắt controller
+      // Khi app ẩn xuống, giải phóng camera ngay
       if (controller != null) {
         await controller.dispose();
-        // Reset về trạng thái ban đầu để giải phóng RAM
         emit(IrScannerState.initial());
       }
     } else if (event.state == AppLifecycleState.resumed) {
-      // Khi app quay lại, thử khởi tạo lại camera
+      // Khi app hiện lên, khởi tạo lại
       if (controller == null) {
         add(IrCameraInitialize());
       }
     }
   }
 
-  // --- Logic Quay video (Chuẩn bị cho tương lai) ---
+  // --- Logic Quay Video ---
 
   Future<void> _onVideoRecordingStarted(
     IrVideoRecordingStarted event,
     Emitter<IrScannerState> emit,
   ) async {
     final controller = state.cameraController;
-    if (controller == null || !controller.value.isInitialized) {
-      return;
-    }
-
-    // Lưu ý: Để quay video có tiếng, bạn cần xin thêm quyền Microphone
-    // và set enableAudio: true ở phần khởi tạo controller.
+    if (controller == null || !controller.value.isInitialized) return;
 
     try {
       await controller.startVideoRecording();
@@ -200,25 +183,29 @@ class IrScannerBloc extends Bloc<IrScannerEvent, IrScannerState>
     }
 
     try {
+      // 1. Dừng quay và lấy file
       final XFile videoFile = await controller.stopVideoRecording();
 
+      // 2. Lưu vào Gallery (Thư viện ảnh)
+      // Hàm này sẽ tự động xin quyền truy cập thư viện nếu chưa có
+      await Gal.putVideo(videoFile.path);
+
+      // 3. Cập nhật State
       emit(
         state.copyWith(
-          status:
-              IrScannerStatus.ready, // Quay về trạng thái sẵn sàng (Preview)
+          status: IrScannerStatus.ready,
           isRecording: false,
+          lastRecordedVideo:
+              videoFile, // Lưu file vào state để UI hiện thông báo
         ),
       );
 
-      // Log đường dẫn file
-      log("Video đã được lưu tại: ${videoFile.path}");
-
-      // TODO: Ở đây bạn có thể thêm logic lưu vào Gallery (dùng gal hoặc gallery_saver)
+      log("Video đã được lưu vào Gallery: ${videoFile.path}");
     } catch (e) {
       emit(
         state.copyWith(
           status: IrScannerStatus.error,
-          errorMessage: "Lỗi dừng quay: $e",
+          errorMessage: "Lỗi dừng/lưu video: $e",
         ),
       );
     }
@@ -227,8 +214,8 @@ class IrScannerBloc extends Bloc<IrScannerEvent, IrScannerState>
   // --- Dọn dẹp ---
   @override
   Future<void> close() {
-    WidgetsBinding.instance.removeObserver(this); // Ngừng lắng nghe lifecycle
-    state.cameraController?.dispose(); // Hủy controller khi BLoC bị đóng
+    WidgetsBinding.instance.removeObserver(this);
+    state.cameraController?.dispose();
     return super.close();
   }
 }
