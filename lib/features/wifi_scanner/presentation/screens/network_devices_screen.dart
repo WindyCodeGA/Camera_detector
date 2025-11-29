@@ -31,7 +31,7 @@ class _NetworkDevicesScreenState extends State<NetworkDevicesScreen> {
     final scanner = LanScanner();
     final info = NetworkInfo();
 
-    // 1. Lấy IP của chính mình (ví dụ: 192.168.1.5)
+    // Lấy IP của router
     final String? wifiIp = await info.getWifiIP();
     final String? subnet = ipToSubnet(wifiIp ?? '');
 
@@ -39,13 +39,13 @@ class _NetworkDevicesScreenState extends State<NetworkDevicesScreen> {
       if (mounted) {
         setState(() => _isScanning = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Không lấy được địa chỉ IP nội bộ.")),
+          const SnackBar(content: Text("Unable to get internal IP address.")),
         );
       }
       return;
     }
 
-    // 2. Bắt đầu quét từ .1 đến .255
+    // Bắt đầu quét
     final stream = scanner.icmpScan(
       subnet,
       progressCallback: (progress) {
@@ -76,7 +76,10 @@ class _NetworkDevicesScreenState extends State<NetworkDevicesScreen> {
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text("Thiết bị trong mạng", style: TextStyle(fontSize: 18)),
+            const Text(
+              "Devices in the network",
+              style: TextStyle(fontSize: 18),
+            ),
             Text(
               widget.ssid,
               style: const TextStyle(fontSize: 12, color: Colors.grey),
@@ -114,7 +117,7 @@ class _NetworkDevicesScreenState extends State<NetworkDevicesScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  "Tìm thấy: ${_devices.length} thiết bị",
+                  "Find: ${_devices.length} device",
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 16,
@@ -127,7 +130,7 @@ class _NetworkDevicesScreenState extends State<NetworkDevicesScreen> {
           // Danh sách thiết bị
           Expanded(
             child: _devices.isEmpty && !_isScanning
-                ? const Center(child: Text("Không tìm thấy thiết bị nào khác."))
+                ? const Center(child: Text("No other devices found."))
                 : ListView.builder(
                     itemCount: _devices.length,
                     itemBuilder: (context, index) {

@@ -3,7 +3,7 @@ import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 
 class BluetoothDeviceModel extends Equatable {
   final ScanResult scanResult;
-  final double riskScore; // 0.0 -> 100.0
+  final double riskScore;
 
   const BluetoothDeviceModel({
     required this.scanResult,

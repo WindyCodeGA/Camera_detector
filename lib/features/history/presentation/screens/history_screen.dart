@@ -15,11 +15,11 @@ class _HistoryScreenState extends State<HistoryScreen> {
   @override
   void initState() {
     super.initState();
-    // Load lịch sử khi vào màn hình
+
     context.read<HistoryBloc>().add(LoadHistory());
   }
 
-  // Hàm helper để chọn icon và màu dựa trên loại quét
+  // Hàm helper ta dùng để chọn icon và màu dựa trên loại quét
   IconData _getIcon(ScanType type) {
     switch (type) {
       case ScanType.magnetic:
@@ -67,7 +67,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
             return const Center(child: CircularProgressIndicator());
           }
           if (state.records.isEmpty) {
-            return const Center(child: Text("Chưa có lịch sử quét nào."));
+            return const Center(child: Text("There is no scan history yet."));
           }
 
           return ListView.builder(

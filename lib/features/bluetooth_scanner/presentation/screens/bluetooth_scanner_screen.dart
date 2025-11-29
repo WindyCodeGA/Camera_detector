@@ -1,13 +1,12 @@
-import 'dart:math'; // Đã được dùng (hàm max cho biểu đồ)
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:fl_chart/fl_chart.dart'; // Đã được dùng (LineChart)
-// Đã được dùng (ScannerStatus)
+import 'package:fl_chart/fl_chart.dart';
 
 // Import BLoC, State và Model
 import '../../application/bluetooth_bloc.dart';
-import '../../models/bluetooth_device_model.dart'; // Đã được dùng (BluetoothDeviceModel)
-import 'device_tracker_screen.dart'; // Đã được dùng (Navigator push)
+import '../../models/bluetooth_device_model.dart';
+import 'device_tracker_screen.dart';
 
 class BluetoothScannerScreen extends StatefulWidget {
   const BluetoothScannerScreen({super.key});
@@ -20,8 +19,9 @@ class _BluetoothScannerScreenState extends State<BluetoothScannerScreen> {
   @override
   void initState() {
     super.initState();
+
     // Bật quét khi vào màn hình
-    context.read<BluetoothScannerBloc>().add(ToggleScanEvent());
+    // context.read<BluetoothScannerBloc>().add(ToggleScanEvent());
   }
 
   @override
@@ -31,7 +31,7 @@ class _BluetoothScannerScreenState extends State<BluetoothScannerScreen> {
     super.dispose();
   }
 
-  // Helper: Chọn màu dựa trên mức độ rủi ro
+  //  Chọn màu dựa trên mức độ rủi ro
   Color _getRiskColor(double score) {
     if (score >= 70) return Colors.red.shade700;
     if (score >= 40) return Colors.orange.shade700;
@@ -66,17 +66,13 @@ class _BluetoothScannerScreenState extends State<BluetoothScannerScreen> {
       body: BlocListener<BluetoothScannerBloc, BluetoothScannerState>(
         listener: (context, state) {
           if (state.status == ScannerStatus.adapterOff) {
-            _showSnackbar(context, "Bluetooth đã tắt.", Colors.orange);
+            _showSnackbar(context, "Bluetooth is turned off.", Colors.orange);
           } else if (state.status == ScannerStatus.error) {
-            _showSnackbar(context, state.errorMessage ?? "Lỗi", Colors.red);
+            _showSnackbar(context, state.errorMessage ?? " error", Colors.red);
           }
         },
         child: Column(
-          children: [
-            _buildHeader(),
-            _buildDeviceList(), // Hàm này dùng BluetoothDeviceModel và DeviceTrackerScreen
-            _buildChart(), // Hàm này dùng dart:math và fl_chart
-          ],
+          children: [_buildHeader(), _buildDeviceList(), _buildChart()],
         ),
       ),
     );
@@ -93,7 +89,7 @@ class _BluetoothScannerScreenState extends State<BluetoothScannerScreen> {
           child: Row(
             children: [
               Chip(
-                label: Text('Thiết bị: ${state.filteredScanResults.length}'),
+                label: Text('Device: ${state.filteredScanResults.length}'),
                 backgroundColor: Colors.blue.shade100,
               ),
               const SizedBox(width: 8),
@@ -110,7 +106,7 @@ class _BluetoothScannerScreenState extends State<BluetoothScannerScreen> {
     );
   }
 
-  // Widget hiển thị danh sách thiết bị
+  // Widget hiển thị danh sách thiết bị đã quét
   Widget _buildDeviceList() {
     return Expanded(
       child: BlocBuilder<BluetoothScannerBloc, BluetoothScannerState>(
@@ -118,7 +114,7 @@ class _BluetoothScannerScreenState extends State<BluetoothScannerScreen> {
             prev.filteredScanResults != curr.filteredScanResults,
         builder: (context, state) {
           if (state.filteredScanResults.isEmpty && !state.isScanning) {
-            return const Center(child: Text("Sẵn sàng quét..."));
+            return const Center(child: Text("Ready to scan..."));
           }
           if (state.filteredScanResults.isEmpty && state.isScanning) {
             return const Center(child: CircularProgressIndicator());
@@ -127,19 +123,17 @@ class _BluetoothScannerScreenState extends State<BluetoothScannerScreen> {
           return ListView.builder(
             itemCount: state.filteredScanResults.length,
             itemBuilder: (context, index) {
-              // --- FIX LỖI UNUSED IMPORT MODEL ---
               // Lấy dữ liệu từ Model
               final BluetoothDeviceModel model =
                   state.filteredScanResults[index];
               final result = model.scanResult;
               final risk = model.riskScore;
-
               final riskColor = _getRiskColor(risk);
 
               return Card(
                 elevation: risk > 50 ? 4 : 1,
                 margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                // Viền đỏ nếu rủi ro cao
+                // Viền đỏ nếu là  rủi ro cao
                 shape: risk > 50
                     ? RoundedRectangleBorder(
                         side: const BorderSide(color: Colors.red, width: 2),
@@ -147,7 +141,6 @@ class _BluetoothScannerScreenState extends State<BluetoothScannerScreen> {
                       )
                     : null,
                 child: ListTile(
-                  // --- FIX LỖI UNUSED IMPORT SCREEN ---
                   onTap: () {
                     Navigator.push(
                       context,
@@ -158,9 +151,7 @@ class _BluetoothScannerScreenState extends State<BluetoothScannerScreen> {
                     );
                   },
                   leading: CircleAvatar(
-                    backgroundColor: riskColor.withValues(
-                      alpha: 0.2,
-                    ), // Fix withOpacity
+                    backgroundColor: riskColor.withValues(alpha: 0.2),
                     child: Icon(Icons.bluetooth, color: riskColor),
                   ),
                   title: Text(
@@ -208,7 +199,7 @@ class _BluetoothScannerScreenState extends State<BluetoothScannerScreen> {
     );
   }
 
-  // Widget Biểu đồ (Sử dụng fl_chart và dart:math)
+  // Widget Biểu đồ
   Widget _buildChart() {
     return BlocBuilder<BluetoothScannerBloc, BluetoothScannerState>(
       buildWhen: (prev, curr) => prev.chartData != curr.chartData,
@@ -246,8 +237,6 @@ class _BluetoothScannerScreenState extends State<BluetoothScannerScreen> {
                       ),
                     ],
                     minY: 0,
-                    // --- FIX LỖI UNUSED IMPORT dart:math ---
-                    // Sử dụng hàm max()
                     maxY: state.chartData.isNotEmpty
                         ? max(
                             5.0,
@@ -291,7 +280,7 @@ class _BluetoothScannerScreenState extends State<BluetoothScannerScreen> {
                   mainAxisSize: MainAxisSize.min,
                   children: <Widget>[
                     const Text(
-                      'Bộ lọc',
+                      'Filter ',
                       style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
@@ -316,18 +305,18 @@ class _BluetoothScannerScreenState extends State<BluetoothScannerScreen> {
                       ],
                     ),
                     SwitchListTile(
-                      title: const Text('Chỉ thiết bị có tên'),
+                      title: const Text('Only devices have names'),
                       value: tempOnlyNamed,
                       onChanged: (v) => setModalState(() => tempOnlyNamed = v),
                     ),
                     SwitchListTile(
-                      title: const Text('Chỉ thiết bị kết nối được'),
+                      title: const Text('Only connected devices'),
                       value: tempOnlyConnectable,
                       onChanged: (v) =>
                           setModalState(() => tempOnlyConnectable = v),
                     ),
                     ElevatedButton(
-                      child: const Text('Áp dụng'),
+                      child: const Text('Apply'),
                       onPressed: () {
                         context.read<BluetoothScannerBloc>().add(
                           ApplyFiltersEvent(

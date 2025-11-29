@@ -17,7 +17,6 @@ class MagneticScannerBloc
     on<_MagneticSensorUpdated>(_onSensorUpdated);
     on<BaselineNoiseChanged>(_onBaselineNoiseChanged);
   }
-
   // Bắt đầu lắng nghe
   void _onScanStarted(
     MagneticScanStarted event,
@@ -66,12 +65,12 @@ class MagneticScannerBloc
     emit(
       state.copyWith(
         status: MagneticScannerStatus.scanning,
-        rawValue: totalStrength, // Lưu vào giá trị thô
+        rawValue: totalStrength,
       ),
     );
   }
 
-  // HANDLER MỚI: Xử lý sự kiện kéo thanh trượt
+  // ta xử lý sự kiện kéo thanh trượt
   void _onBaselineNoiseChanged(
     BaselineNoiseChanged event,
     Emitter<MagneticScannerState> emit,

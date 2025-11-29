@@ -13,24 +13,20 @@ class WifiScannerBloc extends Bloc<WifiScannerEvent, WifiScannerState> {
   WifiScannerBloc() : super(WifiScannerState.initial()) {
     // Đăng ký các trình xử lý sự kiện
     on<ScanStarted>(_onScanStarted);
-    on<ScanStopped>(_onScanStopped); // <--- ĐĂNG KÝ SỰ KIỆN MỚI
+    on<ScanStopped>(_onScanStopped);
     on<PermissionRequested>(_onPermissionRequested);
     on<_ScanResultsUpdated>(_onResultsUpdated);
     on<_ScanFailed>(_onScanFailed);
-
-    // --- QUAN TRỌNG: ĐÃ XÓA DÒNG NÀY ---
-    // add(PermissionRequested());
-    // (Để UI tự gọi khi cần, không gọi tự động gây lag)
   }
 
   // --- Trình xử lý sự kiện ---
 
-  // 1. BẮT ĐẦU QUÉT
+  //  BẮT ĐẦU QUÉT
   Future<void> _onScanStarted(
     ScanStarted event,
     Emitter<WifiScannerState> emit,
   ) async {
-    // 1. Kiểm tra QUYỀN (Permission) - Code cũ
+    // ta kiểm tra QUYỀN (Permission)
     final status = await Permission.location.status;
     if (!status.isGranted) {
       // Nếu chưa có quyền -> Thử xin quyền
@@ -38,22 +34,19 @@ class WifiScannerBloc extends Bloc<WifiScannerEvent, WifiScannerState> {
       return;
     }
 
-    // --- THÊM ĐOẠN NÀY: Kiểm tra GPS (Service) ---
     // Kiểm tra xem người dùng có bật công tắc Vị trí/GPS không
     if (await Permission.location.serviceStatus.isDisabled) {
       emit(
         state.copyWith(
           status: WifiScannerStatus.error,
-          errorMessage: "Vui lòng bật GPS (Vị trí) để quét Wi-Fi",
+          errorMessage: "Please enable GPS (Location) for Wi-Fi scanning",
         ),
       );
-      return; // Dừng lại, không quét nữa
+      return;
     }
 
-    // Chuyển sang loading
     emit(state.copyWith(status: WifiScannerStatus.loading));
 
-    // Giả lập delay 3 giây (animation)
     await Future.delayed(const Duration(seconds: 3));
 
     // Bắt đầu quét định kỳ
@@ -61,17 +54,17 @@ class WifiScannerBloc extends Bloc<WifiScannerEvent, WifiScannerState> {
     emit(state.copyWith(status: WifiScannerStatus.scanning));
   }
 
-  // 2. DỪNG QUÉT (MỚI) - Dùng khi chuyển tab
+  //  DỪNG QUÉT
   Future<void> _onScanStopped(
     ScanStopped event,
     Emitter<WifiScannerState> emit,
   ) async {
-    _scanTimer?.cancel(); // Hủy timer
-    // Reset về trạng thái ban đầu (hoặc giữ nguyên list nếu muốn)
+    _scanTimer?.cancel();
+    // ta reset về trạng thái ban đầu
     emit(state.copyWith(status: WifiScannerStatus.initial));
   }
 
-  // 3. XIN QUYỀN
+  // XIN QUYỀN
   Future<void> _onPermissionRequested(
     PermissionRequested event,
     Emitter<WifiScannerState> emit,
@@ -85,7 +78,7 @@ class WifiScannerBloc extends Bloc<WifiScannerEvent, WifiScannerState> {
     }
   }
 
-  // 4. CẬP NHẬT KẾT QUẢ
+  //  CẬP NHẬT KẾT QUẢ
   void _onResultsUpdated(
     _ScanResultsUpdated event,
     Emitter<WifiScannerState> emit,
@@ -98,7 +91,7 @@ class WifiScannerBloc extends Bloc<WifiScannerEvent, WifiScannerState> {
     );
   }
 
-  // 5. XỬ LÝ LỖI
+  // XỬ LÝ LỖI
   void _onScanFailed(_ScanFailed event, Emitter<WifiScannerState> emit) {
     emit(
       state.copyWith(
@@ -112,8 +105,8 @@ class WifiScannerBloc extends Bloc<WifiScannerEvent, WifiScannerState> {
 
   void _startPeriodicScan() {
     _scanTimer?.cancel();
-    _scanWifi(); // Quét ngay phát đầu tiên
-    // Quét lại mỗi 5 giây (2 giây là hơi nhanh, dễ gây lag máy)
+    _scanWifi();
+
     _scanTimer = Timer.periodic(const Duration(seconds: 5), (_) => _scanWifi());
   }
 
@@ -124,7 +117,7 @@ class WifiScannerBloc extends Bloc<WifiScannerEvent, WifiScannerState> {
         askPermissions: false,
       );
       if (canScan != CanStartScan.yes) {
-        // Nếu không quét được (do phần cứng hoặc throttle), bỏ qua lượt này
+        // Nếu không quét được ta  bỏ qua lượt này
         return;
       }
 

@@ -3,11 +3,10 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:camera/camera.dart';
 import 'package:permission_handler/permission_handler.dart';
 
-// Import BLoC hồng ngoại
+// nhớ Import BLoC hồng ngoại
 import '../../application/ir_scanner_bloc.dart';
 
 // --- THÊM IMPORT CHO HISTORY (LỊCH SỬ) ---
-// (Lưu ý: Đảm bảo đường dẫn này đúng với cấu trúc thư mục của bạn)
 import '../../../history/application/history_bloc.dart';
 import '../../../history/data/scan_record_model.dart';
 
@@ -47,30 +46,77 @@ class _IRScannerScreenState extends State<IRScannerScreen> {
       case IRFilter.red:
         // Lọc chỉ giữ lại kênh Đỏ, loại bỏ Xanh lá và Xanh dương
         return const ColorFilter.matrix([
-          1, 0, 0, 0, 0, // R = 1*R
-          0, 0, 0, 0, 0, // G = 0
-          0, 0, 0, 0, 0, // B = 0
-          0, 0, 0, 1, 0, // Alpha giữ nguyên
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          1,
+          0,
         ]);
 
       case IRFilter.green:
         return const ColorFilter.matrix([
-          0, 0, 0, 0, 0,
-          0, 1, 0, 0, 0, // Chỉ giữ Green
-          0, 0, 0, 0, 0,
-          0, 0, 0, 1, 0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          1,
+          0,
         ]);
 
       case IRFilter.blue:
         return const ColorFilter.matrix([
-          0, 0, 0, 0, 0,
-          0, 0, 0, 0, 0,
-          0, 0, 1, 0, 0, // Chỉ giữ Blue
-          0, 0, 0, 1, 0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          1,
+          0,
         ]);
 
       case IRFilter.greyscale:
-        // Giữ nguyên bộ lọc đen trắng cũ của bạn (nó đã tốt rồi)
         return const ColorFilter.matrix([
           0.2126,
           0.7152,
@@ -116,7 +162,7 @@ class _IRScannerScreenState extends State<IRScannerScreen> {
             prev.lastRecordedVideo != curr.lastRecordedVideo ||
             prev.errorMessage != curr.errorMessage,
         listener: (context, state) {
-          // 1. Xử lý lỗi
+          // Xử lý lỗi
           if (state.status == IrScannerStatus.error &&
               state.errorMessage != null &&
               state.errorMessage != "PERMISSION_DENIED") {
@@ -128,26 +174,22 @@ class _IRScannerScreenState extends State<IRScannerScreen> {
             );
           }
 
-          // 2. KHI LƯU VIDEO THÀNH CÔNG -> LƯU VÀO LỊCH SỬ
+          //  KHI LƯU VIDEO THÀNH CÔNG -> LƯU VÀO LỊCH SỬ
           if (state.lastRecordedVideo != null) {
-            // --- LOGIC MỚI: LƯU VÀO HISTORY ---
             final record = ScanRecord(
-              type: ScanType.infrared, // Loại quét: Hồng ngoại
+              type: ScanType.infrared,
               timestamp: DateTime.now(),
-              value: "Đã quay video hồng ngoại",
-              note: state
-                  .lastRecordedVideo!
-                  .path, // Lưu đường dẫn file để sau này mở lại
+              value: "Recorded infrared video",
+              note: state.lastRecordedVideo!.path,
             );
 
             // Gửi sự kiện sang HistoryBloc
             context.read<HistoryBloc>().add(AddHistoryRecord(record));
-            // ----------------------------------
 
             // Hiện thông báo cho người dùng
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
-                content: Text("Đã lưu video vào Thư viện & Lịch sử!"),
+                content: Text("Video saved to Library & History!"),
                 backgroundColor: Colors.green,
                 duration: Duration(seconds: 3),
               ),
@@ -175,15 +217,13 @@ class _IRScannerScreenState extends State<IRScannerScreen> {
             child: ElevatedButton(
               onPressed: () =>
                   context.read<IrScannerBloc>().add(IrCameraInitialize()),
-              child: const Text("Thử lại"),
+              child: const Text("Retry"),
             ),
           );
         },
       ),
     );
   }
-
-  // --- CÁC WIDGET CON (GIỮ NGUYÊN) ---
 
   Widget _buildCameraUI(BuildContext context, IrScannerState state) {
     final controller = state.cameraController!;
@@ -398,13 +438,13 @@ class _IRScannerScreenState extends State<IRScannerScreen> {
           const Icon(Icons.videocam_off, size: 80, color: Colors.grey),
           const SizedBox(height: 20),
           const Text(
-            "Cần quyền Camera & Micro",
+            "Need Camera and Microphone permissions",
             style: TextStyle(color: Colors.white, fontSize: 18),
           ),
           const SizedBox(height: 20),
           ElevatedButton(
             onPressed: _requestPermission,
-            child: const Text("Cho phép"),
+            child: const Text("Allow"),
           ),
         ],
       ),

@@ -21,7 +21,7 @@ class HistoryBloc extends Bloc<HistoryEvent, HistoryState> {
 
     on<AddHistoryRecord>((event, emit) async {
       await _db.create(event.record);
-      add(LoadHistory()); // Load lại danh sách sau khi thêm
+      add(LoadHistory());
     });
 
     on<DeleteHistoryRecord>((event, emit) async {

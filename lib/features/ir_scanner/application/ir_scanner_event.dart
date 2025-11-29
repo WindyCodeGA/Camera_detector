@@ -30,7 +30,6 @@ class IrVideoRecordingStopped extends IrScannerEvent {}
 
 // --- Sự kiện nội bộ BLoC ---
 
-// Khi app lifecycle thay đổi (ra khỏi app, vào lại app)
 class _IrAppLifecycleChanged extends IrScannerEvent {
   final AppLifecycleState state;
   const _IrAppLifecycleChanged(this.state);

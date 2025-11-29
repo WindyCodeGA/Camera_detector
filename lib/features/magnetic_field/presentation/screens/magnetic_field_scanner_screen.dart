@@ -26,7 +26,6 @@ class _MagneticFieldScannerScreenState
   @override
   void initState() {
     super.initState();
-    // ĐÃ TẮT TỰ ĐỘNG QUÉT
     _initAudio();
   }
 
@@ -77,11 +76,11 @@ class _MagneticFieldScannerScreenState
   }
 
   void _saveToHistory(double value) {
-    String note = "Mức độ thường";
+    String note = "Normal level";
     if (value > 250) {
-      note = "Nam châm/Kim loại lớn";
+      note = "Large Magnet/Metal";
     } else if (value > 30) {
-      note = "Nguy hiểm (Có thể là Camera)";
+      note = "Danger (Possibly Camera)";
     }
     final record = ScanRecord(
       type: ScanType.magnetic,
@@ -92,7 +91,7 @@ class _MagneticFieldScannerScreenState
     context.read<HistoryBloc>().add(AddHistoryRecord(record));
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text("Đã lưu vào Lịch sử!"),
+        content: Text("Saved to History!"),
         backgroundColor: Colors.green,
       ),
     );
@@ -150,7 +149,7 @@ class _MagneticFieldScannerScreenState
                 // Thanh trượt
                 Column(
                   children: [
-                    const Text("Hiệu chỉnh độ nhạy"),
+                    const Text("Adjust sensitivity"),
                     Slider(
                       value: state.baselineNoise,
                       min: 0,
@@ -240,7 +239,7 @@ class _MagneticFieldScannerScreenState
             Icon(Icons.warning, color: Colors.purpleAccent, size: 30),
             SizedBox(height: 4),
             Text(
-              "KHÔNG PHẢI MẠCH ĐIỆN TỬ!",
+              "NOT ELECTRONIC CIRCUIT!",
               style: TextStyle(
                 color: Colors.purpleAccent,
                 fontWeight: FontWeight.bold,
@@ -249,7 +248,7 @@ class _MagneticFieldScannerScreenState
               textAlign: TextAlign.center,
             ),
             Text(
-              "Đây là Nam châm hoặc Kim loại lớn.",
+              "This is a large Magnet or Metal.",
               style: TextStyle(color: Colors.white70, fontSize: 14),
               textAlign: TextAlign.center,
             ),
@@ -260,7 +259,7 @@ class _MagneticFieldScannerScreenState
     // Thêm cảnh báo nhẹ cho mức nguy hiểm thường
     else if (value > 30) {
       return const Text(
-        "⚠️ Phát hiện từ trường mạnh\n(Có thể là thiết bị điện tử)",
+        "⚠️ Detects strong magnetic fields\n(Could be an electronic device)",
         style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
         textAlign: TextAlign.center,
       );

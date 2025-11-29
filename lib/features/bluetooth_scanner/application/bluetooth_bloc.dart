@@ -21,17 +21,16 @@ class BluetoothScannerBloc
 
   BluetoothScannerBloc() : super(BluetoothScannerState.initial()) {
     on<ToggleScanEvent>(_onToggleScan);
-    on<StopScanEvent>(_onStopScan); // <--- Sự kiện Dừng
+    on<StopScanEvent>(_onStopScan);
     on<ApplyFiltersEvent>(_onApplyFilters);
     on<_IsScanningUpdatedEvent>(_onIsScanningUpdated);
     on<_ScanResultsUpdatedEvent>(_onScanResultsUpdated);
     on<_AdapterStateUpdatedEvent>(_onAdapterStateUpdated);
     on<_UpdateChartEvent>(_onUpdateChart);
 
-    // Constructor SẠCH: Chỉ lắng nghe trạng thái adapter
     _adapterStateSubscription = FlutterBluePlus.adapterState.listen(
       (adapterState) => add(_AdapterStateUpdatedEvent(adapterState)),
-      onError: (e) => debugPrint("Lỗi adapterState stream: $e"),
+      onError: (e) => debugPrint("Error adapterState stream: $e"),
     );
   }
 
@@ -42,12 +41,12 @@ class BluetoothScannerBloc
 
     _scanResultsSubscription = FlutterBluePlus.scanResults.listen(
       (results) => add(_ScanResultsUpdatedEvent(results)),
-      onError: (e) => debugPrint("Lỗi scanResults stream: $e"),
+      onError: (e) => debugPrint("Error scanResults stream: $e"),
     );
 
     _isScanningSubscription = FlutterBluePlus.isScanning.listen(
       (isScanning) => add(_IsScanningUpdatedEvent(isScanning)),
-      onError: (e) => debugPrint("Lỗi isScanning stream: $e"),
+      onError: (e) => debugPrint("Error isScanning stream: $e"),
     );
 
     _chartUpdateTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
@@ -62,7 +61,7 @@ class BluetoothScannerBloc
     if (state.isScanning) {
       add(StopScanEvent());
     } else {
-      // 1. Kiểm tra quyền
+      // 1. Kiểm tra quyền Bluetooth và Location
       if (defaultTargetPlatform == TargetPlatform.android) {
         var statusScan = await Permission.bluetoothScan.request();
         var statusConnect = await Permission.bluetoothConnect.request();
@@ -87,7 +86,7 @@ class BluetoothScannerBloc
       try {
         await FlutterBluePlus.startScan(timeout: const Duration(seconds: 15));
       } catch (e) {
-        debugPrint("Lỗi quét: $e");
+        debugPrint("Scan error: $e");
       }
     }
   }
@@ -166,8 +165,6 @@ class BluetoothScannerBloc
       ),
     );
   }
-
-  // ... (Các phần Filter, Chart, AdapterUpdate giữ nguyên như cũ) ...
 
   void _onIsScanningUpdated(
     _IsScanningUpdatedEvent event,

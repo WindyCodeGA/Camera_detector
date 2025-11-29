@@ -1,10 +1,4 @@
 import 'package:flutter/material.dart';
-
-//
-// --- CẬP NHẬT IMPORT ---
-// Tất cả các màn hình bây giờ được import từ đường dẫn 'features' mới
-//
-
 // Import BLoC screen của chúng ta
 import 'package:camera_detector/features/bluetooth_scanner/presentation/screens/bluetooth_scanner_screen.dart';
 import 'package:camera_detector/features/wifi_scanner/presentation/screens/wifi_scanner_screen.dart';

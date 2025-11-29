@@ -13,7 +13,6 @@ class IrScannerState extends Equatable {
   final bool isFlashlightOn;
   final bool isRecording;
 
-  // Biến chứa file video vừa quay xong (để UI hiện thông báo)
   final XFile? lastRecordedVideo;
 
   final String? errorMessage;
@@ -33,7 +32,7 @@ class IrScannerState extends Equatable {
     return const IrScannerState(
       status: IrScannerStatus.initial,
       cameraController: null,
-      currentFilter: IRFilter.red, // Mặc định là bộ lọc đỏ
+      currentFilter: IRFilter.red,
       isFlashlightOn: false,
       isRecording: false,
       lastRecordedVideo: null,

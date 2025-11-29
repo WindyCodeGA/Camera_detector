@@ -7,12 +7,12 @@ class MagneticGauge extends StatelessWidget {
 
   const MagneticGauge({super.key, required this.value, this.maximum = 200.0});
 
-  // Helper để lấy màu dựa trên giá trị
+  // màu dựa trên giá trị
   Color _getStrengthColor(double val) {
-    if (val > 250) return Colors.purpleAccent; // > 250: Tím (Nam châm)
-    if (val > 100) return Colors.red; // > 100: Đỏ (Nguy hiểm)
-    if (val > 30) return Colors.orange; // > 30: Cam (Cảnh báo)
-    return Colors.white; // Bình thường
+    if (val > 250) return Colors.purpleAccent;
+    if (val > 100) return Colors.red;
+    if (val > 30) return Colors.orange;
+    return Colors.white;
   }
 
   @override
@@ -38,7 +38,7 @@ class MagneticGauge extends StatelessWidget {
             ),
 
             MarkerPointer(
-              value: value, // Giá trị đã lọc
+              value: value,
               markerHeight: 20,
               markerWidth: 20,
               markerType: MarkerType.circle,

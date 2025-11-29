@@ -9,10 +9,10 @@ abstract class MagneticScannerEvent extends Equatable {
 // Bắt đầu lắng nghe cảm biến
 class MagneticScanStarted extends MagneticScannerEvent {}
 
-// Dừng lắng nghe cảm biến (khi rời màn hình)
+// Dừng lắng nghe cảm biến (khi ta  rời màn hình)
 class MagneticScanStopped extends MagneticScannerEvent {}
 
-// Sự kiện nội bộ: Cập nhật giá trị từ cảm biến
+//  Cập nhật giá trị từ cảm biến
 class _MagneticSensorUpdated extends MagneticScannerEvent {
   final MagnetometerEvent sensorEvent;
   const _MagneticSensorUpdated(this.sensorEvent);
@@ -21,7 +21,7 @@ class _MagneticSensorUpdated extends MagneticScannerEvent {
   List<Object> get props => [sensorEvent];
 }
 
-// SỰ KIỆN MỚI: Khi người dùng kéo thanh trượt
+//  Khi ta  dùng kéo thanh trượt
 class BaselineNoiseChanged extends MagneticScannerEvent {
   final double newBaseline;
   const BaselineNoiseChanged(this.newBaseline);

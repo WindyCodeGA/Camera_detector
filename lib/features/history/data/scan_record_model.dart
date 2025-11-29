@@ -4,8 +4,8 @@ class ScanRecord {
   final int? id;
   final ScanType type;
   final DateTime timestamp;
-  final String value; // Ví dụ: "85 µT" hoặc đường dẫn video
-  final String? note; // Ghi chú thêm
+  final String value;
+  final String? note;
 
   ScanRecord({
     this.id,
@@ -19,7 +19,7 @@ class ScanRecord {
   Map<String, dynamic> toMap() {
     return {
       'id': id,
-      'type': type.index, // Lưu enum dưới dạng số nguyên
+      'type': type.index,
       'timestamp': timestamp.toIso8601String(),
       'value': value,
       'note': note,

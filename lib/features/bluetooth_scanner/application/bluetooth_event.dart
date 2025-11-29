@@ -9,7 +9,7 @@ abstract class BluetoothScannerEvent extends Equatable {
 // Bật quét (Nút Play)
 class ToggleScanEvent extends BluetoothScannerEvent {}
 
-// Dừng quét (Khi rời màn hình)
+// Dừng ngay khi quét (Khi rời màn hình)
 class StopScanEvent extends BluetoothScannerEvent {}
 
 // Áp dụng bộ lọc

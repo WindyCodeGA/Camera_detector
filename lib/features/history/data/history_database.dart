@@ -40,7 +40,7 @@ class HistoryDatabase {
 
   Future<List<ScanRecord>> readAllHistory() async {
     final db = await database;
-    final orderBy = 'timestamp DESC'; // Mới nhất lên đầu
+    final orderBy = 'timestamp DESC';
     final result = await db.query('history', orderBy: orderBy);
     return result.map((json) => ScanRecord.fromMap(json)).toList();
   }

@@ -18,8 +18,6 @@ class _WifiScannerScreenState extends State<WifiScannerScreen> {
   @override
   void initState() {
     super.initState();
-    // TẮT TỰ ĐỘNG QUÉT (Theo yêu cầu của bạn)
-    // context.read<WifiScannerBloc>().add(ScanStarted());
   }
 
   @override
@@ -70,14 +68,14 @@ class _WifiScannerScreenState extends State<WifiScannerScreen> {
                     ),
                     const SizedBox(height: 10),
                     Text(
-                      "Lỗi: ${state.errorMessage ?? 'Không xác định'}",
+                      "Error: ${state.errorMessage ?? 'Not determined'}",
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 10),
                     ElevatedButton(
                       onPressed: () =>
                           context.read<WifiScannerBloc>().add(ScanStarted()),
-                      child: const Text("Thử lại"),
+                      child: const Text("Retry"),
                     ),
                   ],
                 ),
@@ -121,7 +119,7 @@ class _WifiScannerScreenState extends State<WifiScannerScreen> {
     List<WiFiAccessPoint> networks,
   ) {
     if (networks.isEmpty) {
-      return const Center(child: Text("Đang tìm kiếm mạng Wi-Fi..."));
+      return const Center(child: Text("Searching for Wi-Fi networks..."));
     }
 
     return ListView.builder(
@@ -155,7 +153,6 @@ class _WifiScannerScreenState extends State<WifiScannerScreen> {
               color: Colors.grey,
             ),
 
-            // --- SỰ KIỆN NHẤN VÀO MẠNG ---
             onTap: () async {
               final info = NetworkInfo();
               String? currentBSSID = await info.getWifiBSSID();
@@ -167,21 +164,17 @@ class _WifiScannerScreenState extends State<WifiScannerScreen> {
                   currentBSSID != null &&
                   wifi.bssid.toLowerCase() == currentBSSID.toLowerCase();
 
-              // Fallback: So sánh tên SSID nếu BSSID bị ẩn (Android 12+)
+              // Fallback: So sánh tên SSID nếu BSSID bị ẩn
               if (!isConnected) {
                 String? currentSSID = await info.getWifiName();
                 String targetSSID = wifi.ssid;
                 if (currentSSID != null) {
-                  currentSSID = currentSSID.replaceAll(
-                    '"',
-                    '',
-                  ); // Xóa ngoặc kép
+                  currentSSID = currentSSID.replaceAll('"', '');
                   if (currentSSID == targetSSID) isConnected = true;
                 }
               }
               if (!context.mounted) return;
               if (isConnected) {
-                // Chuyển sang màn hình quét thiết bị
                 Navigator.push(
                   context,
                   MaterialPageRoute(
@@ -193,7 +186,7 @@ class _WifiScannerScreenState extends State<WifiScannerScreen> {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text(
-                      "Vui lòng kết nối vào mạng '${wifi.ssid}' để quét thiết bị!",
+                      "Please connect to the network '${wifi.ssid}' to scan the device!",
                     ),
                     backgroundColor: Colors.orange,
                     duration: const Duration(seconds: 2),
@@ -215,18 +208,18 @@ class _WifiScannerScreenState extends State<WifiScannerScreen> {
           const Icon(Icons.location_off, size: 80, color: Colors.grey),
           const SizedBox(height: 16),
           const Text(
-            "Quyền truy cập vị trí bị từ chối.",
+            "Location access denied.",
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 8),
           const Text(
-            "Cần quyền vị trí để quét Wi-Fi (Yêu cầu của Android).",
+            "Location permission is required for Wi-Fi scanning (.",
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 16),
           ElevatedButton(
-            child: const Text("Cấp quyền"),
+            child: const Text("Grant permissions"),
             onPressed: () =>
                 context.read<WifiScannerBloc>().add(PermissionRequested()),
           ),

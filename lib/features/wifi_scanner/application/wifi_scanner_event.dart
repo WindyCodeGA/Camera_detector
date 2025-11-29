@@ -7,13 +7,11 @@ abstract class WifiScannerEvent extends Equatable {
   List<Object> get props => [];
 }
 
-// Khi người dùng nhấn nút "Start Wi-Fi Scan" (hoặc vào màn hình)
+// Khi người dùng nhấn nút "Start Wi-Fi Scan"
 class ScanStarted extends WifiScannerEvent {}
 
-// --- QUAN TRỌNG: THÊM SỰ KIỆN NÀY ---
 // Khi người dùng rời khỏi màn hình
 class ScanStopped extends WifiScannerEvent {}
-// ------------------------------------
 
 // Yêu cầu lại quyền (nếu bị từ chối)
 class PermissionRequested extends WifiScannerEvent {}

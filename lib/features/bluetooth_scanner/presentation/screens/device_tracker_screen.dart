@@ -9,7 +9,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 // Import Model
 import '../../models/bluetooth_device_model.dart';
 
-// Import History (Để lưu kết quả)
+// Import History (Để ta lưu kết quả)
 import '../../../history/application/history_bloc.dart';
 import '../../../history/data/scan_record_model.dart';
 
@@ -25,8 +25,8 @@ class _DeviceTrackerScreenState extends State<DeviceTrackerScreen> {
   StreamSubscription<List<ScanResult>>? _stream;
 
   // Dữ liệu tín hiệu
-  int _targetRssi = -100; // Giá trị thực (cập nhật liên tục)
-  double _displayRssi = -100.0; // Giá trị hiển thị (làm mượt animation)
+  int _targetRssi = -100;
+  double _displayRssi = -100.0;
 
   final AudioPlayer _player = AudioPlayer();
   Timer? _beepTimer;
@@ -41,9 +41,9 @@ class _DeviceTrackerScreenState extends State<DeviceTrackerScreen> {
     _displayRssi = _targetRssi.toDouble();
 
     _initAudio();
-    _startRealtimeScan(); // Bắt đầu quét lại ngay lập tức
-    _startSmoothAnimation(); // Chạy animation mượt
-    _updateBeepSpeed(); // Bắt đầu âm thanh
+    _startRealtimeScan();
+    _startSmoothAnimation();
+    _updateBeepSpeed();
   }
 
   Future<void> _initAudio() async {
@@ -57,7 +57,7 @@ class _DeviceTrackerScreenState extends State<DeviceTrackerScreen> {
   void _startSmoothAnimation() {
     _smoothTimer = Timer.periodic(const Duration(milliseconds: 50), (timer) {
       if (_isDisposed) return;
-      // Di chuyển giá trị hiển thị dần dần tới giá trị thực
+
       if ((_displayRssi - _targetRssi).abs() > 0.5) {
         setState(() {
           _displayRssi += (_targetRssi - _displayRssi) * 0.15;
@@ -67,7 +67,7 @@ class _DeviceTrackerScreenState extends State<DeviceTrackerScreen> {
   }
 
   void _startRealtimeScan() async {
-    // 1. Dừng quét cũ (nếu có) để tránh xung đột
+    // 1. Dừng quét hiện tại (nếu có)
     try {
       await FlutterBluePlus.stopScan();
     } catch (_) {}
@@ -75,17 +75,16 @@ class _DeviceTrackerScreenState extends State<DeviceTrackerScreen> {
     // 2. Bắt đầu quét chế độ Low Latency (Độ trễ thấp - Quét nhanh)
     try {
       await FlutterBluePlus.startScan(
-        timeout: const Duration(minutes: 10), // Quét lâu
+        timeout: const Duration(minutes: 10),
         androidUsesFineLocation: true,
-        androidScanMode:
-            AndroidScanMode.lowLatency, // Quan trọng: Quét liên tục
-        continuousUpdates: true, // Quan trọng cho iOS
+        androidScanMode: AndroidScanMode.lowLatency,
+        continuousUpdates: true,
       );
     } catch (e) {
-      debugPrint("Lỗi quét Tracker: $e");
+      debugPrint("Tracker scanning error: $e");
     }
 
-    // 3. Lắng nghe và lọc đúng thiết bị này
+    // 3. Lắng nghe kết quả quét
     _stream = FlutterBluePlus.scanResults.listen((results) {
       if (_isDisposed) return;
       try {
@@ -94,12 +93,10 @@ class _DeviceTrackerScreenState extends State<DeviceTrackerScreen> {
               r.device.remoteId ==
               widget.deviceModel.scanResult.device.remoteId,
         );
-        // Cập nhật giá trị đích
+
         _targetRssi = found.rssi;
         _updateBeepSpeed();
-      } catch (_) {
-        // Không tìm thấy trong lần quét này (có thể do sóng chập chờn)
-      }
+      } catch (_) {}
     });
   }
 
@@ -142,7 +139,7 @@ class _DeviceTrackerScreenState extends State<DeviceTrackerScreen> {
       type: ScanType.bluetooth,
       timestamp: DateTime.now(),
       value: "${widget.deviceModel.name} ($_targetRssi dBm)",
-      note: "Đã tìm thấy ở khoảng cách ${_getDistance(_targetRssi.toDouble())}",
+      note: "Found in the distance ${_getDistance(_targetRssi.toDouble())}",
     );
 
     // 2. Gửi sang HistoryBloc
@@ -151,17 +148,17 @@ class _DeviceTrackerScreenState extends State<DeviceTrackerScreen> {
     // 3. Thông báo và thoát
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text("Đã lưu vị trí vào Lịch sử!"),
+        content: Text("Location saved to History!"),
         backgroundColor: Colors.green,
       ),
     );
-    Navigator.pop(context); // Quay về danh sách sau khi tìm thấy
+    Navigator.pop(context);
   }
 
   @override
   void dispose() {
     _isDisposed = true;
-    FlutterBluePlus.stopScan(); // Dừng quét ngay lập tức
+    FlutterBluePlus.stopScan();
     _stream?.cancel();
     _beepTimer?.cancel();
     _smoothTimer?.cancel();
@@ -172,7 +169,7 @@ class _DeviceTrackerScreenState extends State<DeviceTrackerScreen> {
   // Công thức ước tính khoảng cách
   String _getDistance(double rssi) {
     if (rssi == 0) return "Unknown";
-    int txPower = -59; // Giả định công suất phát chuẩn
+    int txPower = -59;
     double ratio = (txPower - rssi) / 20.0;
     double dist = pow(10, ratio).toDouble();
 
@@ -281,10 +278,10 @@ class _DeviceTrackerScreenState extends State<DeviceTrackerScreen> {
             // Trạng thái văn bản
             Text(
               signalStrength > 0.85
-                  ? "RẤT GẦN! HÃY TÌM KỸ"
+                  ? "SO CLOSE! SEARCH CAREFULLY"
                   : signalStrength > 0.5
-                  ? "ĐANG LẠI GẦN..."
-                  : "TÍN HIỆU YẾU / XA",
+                  ? "GETTING CLOSE..."
+                  : "WEAK / FAR SIGNAL",
               style: TextStyle(
                 fontSize: 22,
                 fontWeight: FontWeight.bold,
@@ -295,7 +292,7 @@ class _DeviceTrackerScreenState extends State<DeviceTrackerScreen> {
 
             const SizedBox(height: 30),
 
-            // Nút "Found It" (Lưu lịch sử)
+            // Nút "Found It" để Lưu lịch sử
             ElevatedButton.icon(
               onPressed: _saveFoundDevice,
               icon: const Icon(Icons.check_circle, color: Colors.white),

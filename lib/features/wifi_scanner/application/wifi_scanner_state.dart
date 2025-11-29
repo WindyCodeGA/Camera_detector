@@ -1,13 +1,7 @@
 part of 'wifi_scanner_bloc.dart';
 
 // Trạng thái chung của màn hình
-enum WifiScannerStatus {
-  initial, // Màn hình 'Start'
-  loading, // Màn hình 'Start' với animation (sau khi nhấn nút)
-  scanning, // Màn hình danh sách Wi-Fi
-  permissionDenied, // Màn hình báo lỗi thiếu quyền
-  error, // Màn hình báo lỗi chung
-}
+enum WifiScannerStatus { initial, loading, scanning, permissionDenied, error }
 
 class WifiScannerState extends Equatable {
   final WifiScannerStatus status;

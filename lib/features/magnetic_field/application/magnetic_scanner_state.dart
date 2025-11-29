@@ -8,10 +8,10 @@ class MagneticScannerState extends Equatable {
   final double baselineNoise; // Giá trị nhiễu nền (từ thanh trượt)
   final String? errorMessage;
 
-  // HÀM GETTER: Đây là giá trị đã lọc để hiển thị
+  // Đây là giá trị đã lọc để hiển thị
   double get displayedValue {
     final val = rawValue - baselineNoise;
-    return val < 0 ? 0.0 : val; // Không bao giờ hiển thị số âm
+    return val < 0 ? 0.0 : val; // sẽ không hiển thị giá trị âm
   }
 
   const MagneticScannerState({
@@ -25,7 +25,7 @@ class MagneticScannerState extends Equatable {
     return const MagneticScannerState(
       status: MagneticScannerStatus.initial,
       rawValue: 0.0,
-      baselineNoise: 0.0, // Khởi tạo nhiễu nền = 0
+      baselineNoise: 0.0,
     );
   }
 
